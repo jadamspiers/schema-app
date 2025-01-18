@@ -1,7 +1,7 @@
+// src/components/JsonAnalyzer/components/JsonNode.tsx
+
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Copy, Check } from 'lucide-react';
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,30 +10,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { JsonNodeProps, JsonValue } from './types';
 
-type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: JsonValue }
-  | JsonValue[];
-
-interface ParsedJson {
-  valid: boolean;
-  data: JsonValue;
-  error?: string;
-}
-
-interface JsonNodeProps {
-  name: string;
-  value: JsonValue;
-  isRoot?: boolean;
-}
-
-const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isRoot = false }) => {
+const JsonNode: React.FC<JsonNodeProps> = ({ 
+  name, 
+  value, 
+  isRoot = false, 
+  path = '', 
+  onValueSelect 
+}) => {
   const [isExpanded, setIsExpanded] = useState(isRoot);
   const [copied, setCopied] = useState(false);
+
+  const currentPath = path ? `${path}.${name}` : name;
 
   const getValueType = (val: JsonValue): string => {
     if (val === null) return 'null';
@@ -47,6 +36,13 @@ const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isRoot = false }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleValueClick = () => {
+    const type = getValueType(value);
+    if (type !== 'object' && type !== 'array' && onValueSelect) {
+      onValueSelect(currentPath, String(value));
+    }
+  };
+
   const renderValue = () => {
     const type = getValueType(value);
 
@@ -54,16 +50,18 @@ const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isRoot = false }) => {
       return <span className="text-gray-400 font-mono">null</span>;
     }
 
-    if (type === 'string') {
-      return <span className="text-green-500 font-mono">"{String(value)}"</span>;
-    }
-
-    if (type === 'number') {
-      return <span className="text-blue-500 font-mono">{String(value)}</span>;
-    }
-
-    if (type === 'boolean') {
-      return <span className="text-purple-500 font-mono">{String(value)}</span>;
+    if (type === 'string' || type === 'number' || type === 'boolean') {
+      return (
+        <span 
+          className={`font-mono cursor-pointer hover:underline
+            ${type === 'string' ? 'text-green-500' : ''}
+            ${type === 'number' ? 'text-blue-500' : ''}
+            ${type === 'boolean' ? 'text-purple-500' : ''}`}
+          onClick={handleValueClick}
+        >
+          {type === 'string' ? `"${String(value)}"` : String(value)}
+        </span>
+      );
     }
 
     if (type === 'object' || type === 'array') {
@@ -133,7 +131,13 @@ const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isRoot = false }) => {
       {isExpandable && isExpanded && (
         <div className="ml-2">
           {Object.entries(value).map(([key, val]) => (
-            <JsonNode key={key} name={key} value={val} />
+            <JsonNode 
+              key={key} 
+              name={key} 
+              value={val} 
+              path={currentPath}
+              onValueSelect={onValueSelect}
+            />
           ))}
         </div>
       )}
@@ -141,66 +145,4 @@ const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isRoot = false }) => {
   );
 };
 
-const JsonAnalyzer = () => {
-  const [rawJson, setRawJson] = useState('');
-  const [parsedJson, setParsedJson] = useState<ParsedJson | null>(null);
-
-  const parseJson = (input: string): ParsedJson => {
-    try {
-      const data = JSON.parse(input);
-      return {
-        valid: true,
-        data
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        data: null,
-        error: (error as Error).message
-      };
-    }
-  };
-
-  const handleJsonInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const input = e.target.value;
-    setRawJson(input);
-    if (input.trim()) {
-      setParsedJson(parseJson(input));
-    } else {
-      setParsedJson(null);
-    }
-  };
-
-  return (
-    <div className="space-y-4 p-4">
-      <Card>
-        <CardContent className="pt-6">
-          <Textarea
-            placeholder="Paste your JSON here..."
-            value={rawJson}
-            onChange={handleJsonInput}
-            className="min-h-[200px] font-mono"
-          />
-        </CardContent>
-      </Card>
-
-      {parsedJson && (
-        <Card>
-          <CardContent className="pt-6">
-            {parsedJson.valid ? (
-              <div className="space-y-4">
-                <JsonNode name="root" value={parsedJson.data} isRoot />
-              </div>
-            ) : (
-              <div className="text-red-500">
-                Error: {parsedJson.error}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-};
-
-export default JsonAnalyzer;
+export default JsonNode;
