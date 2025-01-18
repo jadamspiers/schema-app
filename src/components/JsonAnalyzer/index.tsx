@@ -75,7 +75,10 @@ const JsonAnalyzer = () => {
       {/* Right Column - Output */}
       <Card className="h-fit">
         <CardContent className="pt-6">
-          <OutputSection fields={fields} />
+          <OutputSection 
+            fields={fields}
+            parsedJson={parsedJson}
+          />
         </CardContent>
       </Card>
     </div>

@@ -29,15 +29,13 @@ export const useTemplateFields = (initialFields: TemplateField[] = DEFAULT_FIELD
     ));
   };
 
-  const handleValueSelect = (path: string, value: string) => {
-    // Find the first empty field or the last field if none are empty
+  const handleValueSelect = (path: string) => {
     const targetField = fields.find(f => !f.value) || fields[fields.length - 1];
     if (targetField) {
-      updateField(targetField.id, { value, path });
+      updateField(targetField.id, { path, value: path });  // Set both path and value
     } else {
-      // If no fields exist, create a new one
       const newId = String(Date.now());
-      setFields([...fields, { id: newId, key: '', path, value }]);
+      setFields([...fields, { id: newId, key: '', path, value: path }]);
     }
   };
 

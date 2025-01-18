@@ -1,7 +1,7 @@
 // src/components/JsonAnalyzer/hooks/useJsonParser.ts
 
 import { useState, type ChangeEvent } from 'react';
-import type { ParsedJson } from '../components/types';
+import type { JsonValue, ParsedJson } from '../components/types';
 
 export const useJsonParser = () => {
   const [rawJson, setRawJson] = useState('');
@@ -33,9 +33,30 @@ export const useJsonParser = () => {
     }
   };
 
+  const getValueFromPath = (data: JsonValue, path: string): string => {
+    try {
+      const parts = path.split('.');
+      let current = data;
+      
+      for (const part of parts) {
+        if (typeof current === 'object' && current !== null) {
+          current = (current as { [key: string]: JsonValue })[part];
+        } else {
+          return '';
+        }
+      }
+      
+      return current !== null && current !== undefined ? String(current) : '';
+    } catch {
+      return '';
+    }
+  };
+  
   return {
     rawJson,
     parsedJson,
-    handleJsonInput
+    handleJsonInput,
+    getValueFromPath
   };
+
 };
