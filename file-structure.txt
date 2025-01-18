@@ -1,0 +1,29 @@
+schema-app/
+├── node_modules/
+├── public/
+├── src/
+│   ├── components/
+│   │   ├── SyslogParser.tsx
+│   │   ├── JsonAnalyzer.tsx
+│   │   └── ui/          # shadcn components will be here
+│   │       ├── textarea.tsx
+│   │       ├── card.tsx
+│   │       └── button.tsx
+│   ├── pages/
+│   │   ├── HomePage.tsx
+│   │   ├── SyslogPage.tsx
+│   │   └── JsonPage.tsx
+│   ├── App.tsx
+│   ├── index.css
+│   ├── main.tsx
+│   └── vite-env.d.ts
+├── .gitignore
+├── components.json    # shadcn configuration
+├── index.html
+├── package.json
+├── postcss.config.js
+├── README.md
+├── tailwind.config.js
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
