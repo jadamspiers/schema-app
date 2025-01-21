@@ -1,45 +1,49 @@
-// src/App.tsx
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from '@/components/auth/context/AuthContext';
+import { SourceProvider } from '@/components/source/context/SourceContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import HomePage from './pages/HomePage';
+import AuthPage from './pages/AuthPage';
 import SyslogPage from './pages/SyslogPage';
 import JsonPage from './pages/JsonPage';
-import { ArrowLeft } from 'lucide-react';
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-background">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/syslog" element={
-            <>
-              <nav className="border-b">
-                <div className="container mx-auto px-4 py-3">
-                  <Link to="/" className="text-muted-foreground hover:text-foreground flex items-center gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Home
-                  </Link>
-                </div>
-              </nav>
-              <SyslogPage />
-            </>
-          } />
-          <Route path="/json" element={
-            <>
-              <nav className="border-b">
-                <div className="container mx-auto px-4 py-3">
-                  <Link to="/" className="text-muted-foreground hover:text-foreground flex items-center gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Home
-                  </Link>
-                </div>
-              </nav>
-              <JsonPage />
-            </>
-          } />
-        </Routes>
-      </div>
-    </Router>
+    <AuthProvider>
+      <SourceProvider>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/syslog"
+                element={
+                  <ProtectedRoute>
+                    <SyslogPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/json"
+                element={
+                  <ProtectedRoute>
+                    <JsonPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </div>
+        </Router>
+      </SourceProvider>
+    </AuthProvider>
   );
 }
 

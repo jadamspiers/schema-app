@@ -1,50 +1,66 @@
-// src/pages/HomePage.tsx
+import { useSource } from '@/components/source/context/SourceContext';
+import { CreateSourceDialog } from '@/components/source/components/CreateSourceDialog';
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { FileJson, FileCode, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { FileJson, FileCode } from 'lucide-react';
 
 const HomePage = () => {
+  const { sources, loading, error } = useSource();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Data Format Analyzer</h1>
-      <div className="grid md:grid-cols-2 gap-6">
-        <Link to="/syslog">
-          <Card className="hover:border-primary transition-colors cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileCode className="h-6 w-6" />
-                Syslog Analyzer
-              </CardTitle>
-              <CardDescription>
-                Parse and analyze syslog format data with structured visualization
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Supports CEF format, Palo Alto logs, and standard syslog formats
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Data Format Analyzer</h1>
+        <CreateSourceDialog />
+      </div>
 
-        <Link to="/json">
-          <Card className="hover:border-primary transition-colors cursor-pointer">
+      <div className="grid gap-6">
+        {sources.map((source) => (
+          <Card key={source.id} className="hover:border-primary transition-colors">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileJson className="h-6 w-6" />
-                JSON Analyzer
-              </CardTitle>
-              <CardDescription>
-                Visualize and explore JSON data structures
-              </CardDescription>
+              <CardTitle>{source.name}</CardTitle>
+              <CardDescription>{source.description}</CardDescription>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Link to={`/source/${source.id}/syslog`}>
+                  <Card className="hover:border-primary transition-colors cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileCode className="h-6 w-6" />
+                        Syslog Analysis
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                </Link>
+                <Link to={`/source/${source.id}/json`}>
+                  <Card className="hover:border-primary transition-colors cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileJson className="h-6 w-6" />
+                        JSON Analysis
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Interactive JSON explorer with syntax highlighting and path navigation
-              </p>
-            </CardContent>
           </Card>
-        </Link>
+        ))}
       </div>
     </div>
   );
