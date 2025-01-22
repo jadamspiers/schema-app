@@ -1,9 +1,8 @@
-// src/components/JsonAnalyzer/components/TemplateSection.tsx
-
-import React from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Save } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SaveSchemaDialog } from '@/components/schema/components/SaveSchemaDialog';
 import type { TemplateField } from './types';
 
 interface TemplateSectionProps {
@@ -19,16 +18,25 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
   onRemoveField,
   onUpdateField
 }) => {
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-semibold">Template Mapping</h3>
-        <Button onClick={onAddField} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Field
-        </Button>
+        <div className="space-x-2">
+          <Button onClick={onAddField} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Field
+          </Button>
+          <Button onClick={() => setSaveDialogOpen(true)} size="sm" variant="outline">
+            <Save className="h-4 w-4 mr-2" />
+            Save Schema
+          </Button>
+        </div>
       </div>
       
+      {/* Existing fields mapping code */}
       {fields.map((field) => (
         <div key={field.id} className="flex items-center space-x-2">
           <Input
@@ -52,6 +60,12 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
           </Button>
         </div>
       ))}
+
+      <SaveSchemaDialog
+        fields={fields}
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+      />
     </div>
   );
 };
