@@ -25,10 +25,16 @@ export function SaveSchemaDialog({
   initialSchema 
 }: SaveSchemaDialogProps) {
   const [name, setName] = useState(initialSchema?.name || '');
+  const [version, setVersion] = useState(initialSchema?.version || '0.0.1');
   const [loading, setLoading] = useState(false);
   const { sourceId } = useParams();
   const { createSchema, updateSchema } = useSchema();
   const { toast } = useToast();
+
+  const incrementPatchVersion = (currentVersion: string) => {
+    const [major, minor, patch] = currentVersion.split('.').map(Number);
+    return `${major}.${minor}.${patch + 1}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +51,8 @@ export function SaveSchemaDialog({
           path,
           value: path // Use path as value
         })),
-        example_json: exampleJson
+        example_json: exampleJson,
+        version: initialSchema ? incrementPatchVersion(initialSchema.version) : version
       };
       console.log('Saving schema with data:', schemaData);
 
@@ -63,7 +70,10 @@ export function SaveSchemaDialog({
         });
       }
       onOpenChange(false);
-      if (!initialSchema) setName(''); // Only reset name for new schemas
+      if (!initialSchema) {
+        setName(''); 
+        setVersion('0.0.1');
+      }
     } catch (error) {
       console.error('Failed to save schema:', error);
       toast({
@@ -80,7 +90,9 @@ export function SaveSchemaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{initialSchema ? 'Update Schema' : 'Save Schema'}</DialogTitle>
+          <DialogTitle>
+            {initialSchema ? `Update Schema (v${initialSchema.version})` : 'Save Schema'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -93,6 +105,20 @@ export function SaveSchemaDialog({
               disabled={loading}
             />
           </div>
+          {!initialSchema && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Version</label>
+              <Input
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                placeholder="x.x.x"
+                pattern="\d+\.\d+\.\d+"
+                title="Version must be in x.x.x format"
+                required
+                disabled={loading}
+              />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
@@ -100,7 +126,7 @@ export function SaveSchemaDialog({
                 {initialSchema ? 'Updating...' : 'Saving...'}
               </>
             ) : (
-              initialSchema ? 'Update Schema' : 'Save Schema'
+              initialSchema ? `Update Schema to v${incrementPatchVersion(initialSchema.version)}` : 'Save Schema'
             )}
           </Button>
         </form>

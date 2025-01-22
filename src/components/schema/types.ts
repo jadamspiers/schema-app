@@ -5,6 +5,7 @@ export interface Schema {
     user_id: string;
     fields: SchemaField[];
     example_json?: string;
+    version: string;
     created_at: string;
     updated_at: string;
   }
@@ -14,6 +15,7 @@ export interface Schema {
     source_id: string;
     fields: SchemaField[];
     example_json?: string;
+    version: string;
   }
   
   export interface SchemaField {

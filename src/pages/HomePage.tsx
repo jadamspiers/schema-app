@@ -80,8 +80,11 @@ const HomePage = () => {
                       className="flex items-center gap-2 p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
                       onClick={() => handleSchemaClick(source.id, schema)}
                     >
-                      <ScrollText className="h-4 w-4" />
-                      <span className="text-sm">{schema.name}</span>
+                      <div className="flex items-center gap-2">
+                        <ScrollText className="h-4 w-4" />
+                        <span className="text-sm">{schema.name}</span>
+                      </div>
+                      <span className="text-sm">{schema.version}</span>
                     </div>
                   ))}
                   {!schemasBySource[source.id]?.length && (
