@@ -6,6 +6,8 @@ import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
 import SyslogPage from './pages/SyslogPage';
 import JsonPage from './pages/JsonPage';
+import SourceSyslogPage from './pages/SourceSyslogPage';
+import SourceJsonPage from './pages/SourceJsonPage';
 
 function App() {
   return (
@@ -36,6 +38,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <JsonPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/source/:sourceId/syslog"
+                element={
+                  <ProtectedRoute>
+                    <SourceSyslogPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/source/:sourceId/json"
+                element={
+                  <ProtectedRoute>
+                    <SourceJsonPage />
                   </ProtectedRoute>
                 }
               />
