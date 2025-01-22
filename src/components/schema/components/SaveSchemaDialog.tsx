@@ -7,18 +7,27 @@ import { useParams } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { TemplateField } from '@/components/JsonAnalyzer/components/types';
+import type { Schema } from '../types';
 
 interface SaveSchemaDialogProps {
   fields: TemplateField[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  exampleJson?: string;
+  initialSchema?: Schema;
 }
 
-export function SaveSchemaDialog({ fields, open, onOpenChange }: SaveSchemaDialogProps) {
-  const [name, setName] = useState('');
+export function SaveSchemaDialog({ 
+  fields, 
+  open, 
+  onOpenChange, 
+  exampleJson, 
+  initialSchema 
+}: SaveSchemaDialogProps) {
+  const [name, setName] = useState(initialSchema?.name || '');
   const [loading, setLoading] = useState(false);
   const { sourceId } = useParams();
-  const { createSchema } = useSchema();
+  const { createSchema, updateSchema } = useSchema();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,24 +36,41 @@ export function SaveSchemaDialog({ fields, open, onOpenChange }: SaveSchemaDialo
 
     try {
       setLoading(true);
-      await createSchema({
+      const schemaData = {
         name,
         source_id: sourceId,
-        fields
-      });
-      toast({
-        title: "Success",
-        description: "Schema saved successfully",
-      });
+        fields: fields.map(({ id, key, path }) => ({
+          id,
+          key,
+          path,
+          value: path // Use path as value
+        })),
+        example_json: exampleJson
+      };
+      console.log('Saving schema with data:', schemaData);
+
+      if (initialSchema) {
+        await updateSchema(initialSchema.id, schemaData);
+        toast({
+          title: "Success",
+          description: "Schema updated successfully",
+        });
+      } else {
+        await createSchema(schemaData);
+        toast({
+          title: "Success",
+          description: "Schema saved successfully",
+        });
+      }
       onOpenChange(false);
-      setName('');
+      if (!initialSchema) setName(''); // Only reset name for new schemas
     } catch (error) {
+      console.error('Failed to save schema:', error);
       toast({
         title: "Error",
-        description: "Failed to save schema",
+        description: initialSchema ? "Failed to update schema" : "Failed to save schema",
         variant: "destructive",
       });
-      console.error('Failed to save schema:', error);
     } finally {
       setLoading(false);
     }
@@ -54,7 +80,7 @@ export function SaveSchemaDialog({ fields, open, onOpenChange }: SaveSchemaDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Save Schema</DialogTitle>
+          <DialogTitle>{initialSchema ? 'Update Schema' : 'Save Schema'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -71,10 +97,10 @@ export function SaveSchemaDialog({ fields, open, onOpenChange }: SaveSchemaDialo
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {initialSchema ? 'Updating...' : 'Saving...'}
               </>
             ) : (
-              'Save Schema'
+              initialSchema ? 'Update Schema' : 'Save Schema'
             )}
           </Button>
         </form>

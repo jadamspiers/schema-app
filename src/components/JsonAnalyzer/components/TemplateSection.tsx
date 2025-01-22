@@ -4,19 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SaveSchemaDialog } from '@/components/schema/components/SaveSchemaDialog';
 import type { TemplateField } from './types';
+import type { Schema } from '@/components/schema/types';
 
 interface TemplateSectionProps {
   fields: TemplateField[];
   onAddField: () => void;
   onRemoveField: (id: string) => void;
   onUpdateField: (id: string, field: Partial<TemplateField>) => void;
+  rawJson?: string;
+  initialSchema?: Schema;
 }
 
 const TemplateSection: React.FC<TemplateSectionProps> = ({
   fields,
   onAddField,
   onRemoveField,
-  onUpdateField
+  onUpdateField,
+  rawJson
 }) => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
@@ -65,6 +69,7 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
         fields={fields}
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
+        exampleJson={rawJson}
       />
     </div>
   );

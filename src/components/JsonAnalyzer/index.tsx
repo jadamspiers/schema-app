@@ -1,27 +1,36 @@
-// src/components/JsonAnalyzer/index.tsx
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-
 import JsonNode from './components/JsonNode';
 import TemplateSection from './components/TemplateSection';
 import OutputSection from './components/OutputSection';
 import { useJsonParser } from './hooks/useJsonParser';
 import { useTemplateFields } from './hooks/useTemplateFields';
+import type { Schema } from '@/components/schema/types';
 
-const JsonAnalyzer = () => {
-  const { rawJson, parsedJson, handleJsonInput } = useJsonParser();
+interface JsonAnalyzerProps {
+  initialSchema?: Schema;
+}
+
+const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
+  const { rawJson, parsedJson, handleJsonInput } = useJsonParser(initialSchema?.example_json);
   const {
     fields,
     addField,
     removeField,
     updateField,
-    handleValueSelect
-  } = useTemplateFields([
+    handleValueSelect,
+    setFields
+  } = useTemplateFields(initialSchema?.fields || [
     { id: '1', key: 'field1', path: '', value: '' },
     { id: '2', key: 'field2', path: '', value: '' }
   ]);
+
+  React.useEffect(() => {
+    if (initialSchema?.fields) {
+      setFields(initialSchema.fields);
+    }
+  }, [initialSchema]);
 
   return (
     <div className="grid grid-cols-3 gap-4 p-4">
@@ -68,6 +77,8 @@ const JsonAnalyzer = () => {
             onAddField={addField}
             onRemoveField={removeField}
             onUpdateField={updateField}
+            rawJson={rawJson}
+            initialSchema={initialSchema}
           />
         </CardContent>
       </Card>

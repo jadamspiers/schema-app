@@ -1,11 +1,14 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import JsonAnalyzer from '@/components/JsonAnalyzer';
 import { useSource } from '@/components/source/context/SourceContext';
 import { Header } from '@/components/layout/Header';
+import type { Schema } from '@/components/schema/types';
 
 const SourceJsonPage = () => {
   const { sourceId } = useParams();
   const { sources } = useSource();
+  const location = useLocation();
+  const selectedSchema = location.state?.selectedSchema as Schema | undefined;
   const source = sources.find(s => s.id === sourceId);
 
   return (
@@ -16,7 +19,7 @@ const SourceJsonPage = () => {
         showBack 
       />
       <div className="container mx-auto py-8">
-        <JsonAnalyzer />
+        <JsonAnalyzer initialSchema={selectedSchema} />
       </div>
     </div>
   );

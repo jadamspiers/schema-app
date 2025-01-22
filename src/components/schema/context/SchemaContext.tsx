@@ -13,6 +13,7 @@ interface SchemaContextType {
   createSchema: (input: CreateSchemaInput) => Promise<Schema>;
   deleteSchema: (id: string) => Promise<void>;
   refreshSchemas: (sourceIds: string[]) => Promise<void>;
+  updateSchema: (id: string, input: Partial<CreateSchemaInput>) => Promise<Schema>;
 }
 
 const SchemaContext = createContext<SchemaContextType | undefined>(undefined);
@@ -52,20 +53,30 @@ export function SchemaProvider({ children }: { children: React.ReactNode }) {
   const createSchema = async (input: CreateSchemaInput): Promise<Schema> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
-
-    const { data, error } = await supabase
-      .from('schemas')
-      .insert({
-        name: input.name,
-        source_id: input.source_id,
-        user_id: user.id,
-        fields: input.fields
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+  
+    try {
+      const { data, error } = await supabase
+        .from('schemas')
+        .insert({
+          name: input.name,
+          source_id: input.source_id,
+          user_id: user.id,
+          fields: input.fields,
+          example_json: input.example_json
+        })
+        .select()
+        .single();
+  
+      if (error) {
+        console.error('Supabase error:', error);  // Add detailed error logging
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Create schema error:', error);  // Add detailed error logging
+      throw error;
+    }
   };
 
   const deleteSchema = async (id: string) => {
@@ -75,6 +86,22 @@ export function SchemaProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
 
     if (error) throw error;
+  };
+
+  const updateSchema = async (id: string, input: Partial<CreateSchemaInput>): Promise<Schema> => {
+    const { data, error } = await supabase
+      .from('schemas')
+      .update({
+        name: input.name,
+        fields: input.fields,
+        example_json: input.example_json
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   };
 
   return (
@@ -91,6 +118,11 @@ export function SchemaProvider({ children }: { children: React.ReactNode }) {
       deleteSchema: async (id) => {
         await deleteSchema(id);
         await refreshSchemas(Object.keys(schemasBySource));
+      },
+      updateSchema: async (id, input) => {
+        const schema = await updateSchema(id, input);
+        await refreshSchemas([schema.source_id]);
+        return schema;
       }
     }}>
       {children}

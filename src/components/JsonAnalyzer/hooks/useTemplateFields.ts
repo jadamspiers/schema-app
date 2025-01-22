@@ -54,6 +54,7 @@ export const useTemplateFields = (initialFields: TemplateField[] = DEFAULT_FIELD
     removeField,
     updateField,
     handleValueSelect,
-    getFieldsOutput
+    getFieldsOutput,
+    setFields
   };
 };

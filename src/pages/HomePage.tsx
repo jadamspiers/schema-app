@@ -1,14 +1,22 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FileJson, FileCode, ScrollText, Loader2 } from 'lucide-react';
 import { useSource } from '@/components/source/context/SourceContext';
 import { useSchema } from '@/components/schema/hooks/useSchema';
 import { CreateSourceDialog } from '@/components/source/components/CreateSourceDialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import type { Schema } from '@/components/schema/types';
 
 const HomePage = () => {
   const { sources, loading: sourcesLoading } = useSource();
   const { schemasBySource, refreshSchemas } = useSchema();
+  const navigate = useNavigate();
+  
+  const handleSchemaClick = (sourceId: string, schema: Schema) => {
+    navigate(`/source/${sourceId}/json`, { 
+      state: { selectedSchema: schema } 
+    });
+  };
 
   useEffect(() => {
     if (sources.length > 0) {
@@ -69,17 +77,29 @@ const HomePage = () => {
                   {schemasBySource[source.id]?.map(schema => (
                     <div
                       key={schema.id}
-                      className="flex items-center gap-2 p-2 rounded-md border bg-muted/50"
+                      className="flex items-center gap-2 p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
+                      onClick={() => handleSchemaClick(source.id, schema)}
                     >
                       <ScrollText className="h-4 w-4" />
                       <span className="text-sm">{schema.name}</span>
                     </div>
                   ))}
+                  {!schemasBySource[source.id]?.length && (
+                    <div className="text-sm text-muted-foreground p-2">
+                      No schemas saved yet
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
+        
+        {sources.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            No sources added yet. Click "New Source" to get started.
+          </div>
+        )}
       </div>
     </div>
   );
