@@ -1,24 +1,25 @@
-import { useSource } from '@/components/source/context/SourceContext';
-import { CreateSourceDialog } from '@/components/source/components/CreateSourceDialog';
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileJson, FileCode, Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { FileJson, FileCode, ScrollText, Loader2 } from 'lucide-react';
+import { useSource } from '@/components/source/context/SourceContext';
+import { useSchema } from '@/components/schema/hooks/useSchema';
+import { CreateSourceDialog } from '@/components/source/components/CreateSourceDialog';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 const HomePage = () => {
-  const { sources, loading, error } = useSource();
+  const { sources, loading: sourcesLoading } = useSource();
+  const { schemasBySource, refreshSchemas } = useSchema();
 
-  if (loading) {
+  useEffect(() => {
+    if (sources.length > 0) {
+      refreshSchemas(sources.map(s => s.id));
+    }
+  }, [sources, refreshSchemas]);
+
+  if (sourcesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-red-500">Error: {error}</div>
       </div>
     );
   }
@@ -36,7 +37,9 @@ const HomePage = () => {
             <CardHeader>
               <CardTitle>{source.name}</CardTitle>
               <CardDescription>{source.description}</CardDescription>
-              <div className="grid grid-cols-2 gap-4 mt-4">
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Link to={`/source/${source.id}/syslog`}>
                   <Card className="hover:border-primary transition-colors cursor-pointer">
                     <CardHeader>
@@ -58,7 +61,23 @@ const HomePage = () => {
                   </Card>
                 </Link>
               </div>
-            </CardHeader>
+              
+              {/* Schemas Section */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Saved Schemas</h3>
+                <div className="grid gap-2">
+                  {schemasBySource[source.id]?.map(schema => (
+                    <div
+                      key={schema.id}
+                      className="flex items-center gap-2 p-2 rounded-md border bg-muted/50"
+                    >
+                      <ScrollText className="h-4 w-4" />
+                      <span className="text-sm">{schema.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
           </Card>
         ))}
       </div>

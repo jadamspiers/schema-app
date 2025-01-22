@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import SyslogParser from '@/components/SyslogParser';
 import { useSource } from '@/components/source/context/SourceContext';
+import { Header } from '@/components/layout/Header';
 
 const SourceSyslogPage = () => {
   const { sourceId } = useParams();
@@ -8,11 +9,15 @@ const SourceSyslogPage = () => {
   const source = sources.find(s => s.id === sourceId);
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">
-        Syslog Analysis for {source?.name || 'Unknown Source'}
-      </h1>
-      <SyslogParser />
+    <div>
+      <Header 
+        title="Syslog Analysis" 
+        sourceName={source?.name} 
+        showBack 
+      />
+      <div className="container mx-auto py-8">
+        <SyslogParser />
+      </div>
     </div>
   );
 };

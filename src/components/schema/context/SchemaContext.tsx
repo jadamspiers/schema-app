@@ -2,33 +2,46 @@ import React, { createContext, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Schema, CreateSchemaInput } from '../types';
 
+interface SchemasBySource {
+  [sourceId: string]: Schema[];
+}
+
 interface SchemaContextType {
-  schemas: Schema[];
+  schemasBySource: SchemasBySource;
   loading: boolean;
   error: string | null;
   createSchema: (input: CreateSchemaInput) => Promise<Schema>;
   deleteSchema: (id: string) => Promise<void>;
-  refreshSchemas: (sourceId: string) => Promise<void>;
+  refreshSchemas: (sourceIds: string[]) => Promise<void>;
 }
 
 const SchemaContext = createContext<SchemaContextType | undefined>(undefined);
 
 export function SchemaProvider({ children }: { children: React.ReactNode }) {
-  const [schemas, setSchemas] = useState<Schema[]>([]);
+  const [schemasBySource, setSchemasBySource] = useState<SchemasBySource>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshSchemas = async (sourceId: string) => {
+  const refreshSchemas = async (sourceIds: string[]) => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('schemas')
         .select('*')
-        .eq('source_id', sourceId)
+        .in('source_id', sourceIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSchemas(data);
+
+      const schemasMap = data.reduce((acc: SchemasBySource, schema) => {
+        if (!acc[schema.source_id]) {
+          acc[schema.source_id] = [];
+        }
+        acc[schema.source_id].push(schema);
+        return acc;
+      }, {});
+
+      setSchemasBySource(schemasMap);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -36,47 +49,49 @@ export function SchemaProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const createSchema = async ({ name, source_id, fields }: CreateSchemaInput) => {
+  const createSchema = async (input: CreateSchemaInput): Promise<Schema> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
       .from('schemas')
       .insert({
-        name,
-        source_id,
+        name: input.name,
+        source_id: input.source_id,
         user_id: user.id,
-        fields
+        fields: input.fields
       })
       .select()
       .single();
 
     if (error) throw error;
-    await refreshSchemas(source_id);
     return data;
   };
 
   const deleteSchema = async (id: string) => {
-    const schema = schemas.find(s => s.id === id);
-    if (!schema) throw new Error('Schema not found');
-
     const { error } = await supabase
       .from('schemas')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
-    await refreshSchemas(schema.source_id);
   };
 
   return (
     <SchemaContext.Provider value={{
-      schemas,
+      schemasBySource,
       loading,
       error,
-      createSchema,
-      deleteSchema,
-      refreshSchemas
+      refreshSchemas,
+      createSchema: async (input) => {
+        const schema = await createSchema(input);
+        await refreshSchemas([input.source_id]);
+        return schema;
+      },
+      deleteSchema: async (id) => {
+        await deleteSchema(id);
+        await refreshSchemas(Object.keys(schemasBySource));
+      }
     }}>
       {children}
     </SchemaContext.Provider>
