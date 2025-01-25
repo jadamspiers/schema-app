@@ -8,6 +8,7 @@ import { useJsonParser } from './hooks/useJsonParser';
 import { useTemplateFields } from './hooks/useTemplateFields';
 import type { Schema } from '../schema/types';
 
+
 interface JsonAnalyzerProps {
   initialSchema?: Schema;
 }
@@ -16,21 +17,16 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
   const { rawJson, parsedJson, handleJsonInput } = useJsonParser(initialSchema?.example_json);
   const {
     fields,
+    isModified,
     addField,
     removeField,
     updateField,
     handleValueSelect,
-    setFields
   } = useTemplateFields(initialSchema?.fields || [
     { id: '1', key: 'field1', path: '', value: '' },
     { id: '2', key: 'field2', path: '', value: '' }
   ]);
 
-  React.useEffect(() => {
-    if (initialSchema?.fields) {
-      setFields(initialSchema.fields);
-    }
-  }, [initialSchema]);
 
   return (
     <div className="space-y-4">
@@ -40,6 +36,9 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
             <h2 className="text-lg font-semibold">{initialSchema.name}</h2>
             <span className="text-sm text-muted-foreground">v{initialSchema.version}</span>
           </div>
+          {isModified && (
+            <span className="text-sm text-yellow-600">Unsaved changes</span>
+          )}
         </div>
       )}
       
@@ -90,6 +89,7 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
                 onUpdateField={updateField}
                 rawJson={rawJson}
                 initialSchema={initialSchema}
+                isModified={isModified}
               />
             </CardContent>
           </Card>

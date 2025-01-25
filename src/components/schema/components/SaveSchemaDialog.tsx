@@ -10,22 +10,25 @@ import type { TemplateField } from '@/components/JsonAnalyzer/components/types';
 import type { Schema } from '../types';
 
 interface SaveSchemaDialogProps {
-  fields: TemplateField[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  exampleJson?: string;
-  initialSchema?: Schema;
-}
+    fields: TemplateField[];
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    exampleJson?: string;
+    initialSchema?: Schema;
+    isModified?: boolean;  // Add this line
+  }
 
 export function SaveSchemaDialog({ 
   fields, 
   open, 
   onOpenChange, 
   exampleJson, 
-  initialSchema 
+  initialSchema,
+  isModified
 }: SaveSchemaDialogProps) {
   const [name, setName] = useState(initialSchema?.name || '');
-  const [version, setVersion] = useState(initialSchema?.version || '0.0.1');
+  const [version, setVersion] = useState('');
+  const [customVersion, setCustomVersion] = useState(false);
   const [loading, setLoading] = useState(false);
   const { sourceId } = useParams();
   const { createSchema, updateSchema } = useSchema();
@@ -35,6 +38,8 @@ export function SaveSchemaDialog({
     const [major, minor, patch] = currentVersion.split('.').map(Number);
     return `${major}.${minor}.${patch + 1}`;
   };
+
+  const nextVersion = initialSchema ? incrementPatchVersion(initialSchema.version) : '0.0.1';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,18 +54,17 @@ export function SaveSchemaDialog({
           id,
           key,
           path,
-          value: path // Use path as value
+          value: path
         })),
         example_json: exampleJson,
-        version: initialSchema ? incrementPatchVersion(initialSchema.version) : version
+        version: customVersion ? version : nextVersion
       };
-      console.log('Saving schema with data:', schemaData);
 
       if (initialSchema) {
         await updateSchema(initialSchema.id, schemaData);
         toast({
           title: "Success",
-          description: "Schema updated successfully",
+          description: `Schema updated to v${schemaData.version}`,
         });
       } else {
         await createSchema(schemaData);
@@ -71,7 +75,7 @@ export function SaveSchemaDialog({
       }
       onOpenChange(false);
       if (!initialSchema) {
-        setName(''); 
+        setName('');
         setVersion('0.0.1');
       }
     } catch (error) {
@@ -91,7 +95,9 @@ export function SaveSchemaDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {initialSchema ? `Update Schema (v${initialSchema.version})` : 'Save Schema'}
+            {initialSchema 
+              ? `Update Schema (Current: v${initialSchema.version})` 
+              : 'Save Schema'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,28 +111,46 @@ export function SaveSchemaDialog({
               disabled={loading}
             />
           </div>
-          {!initialSchema && (
+          {initialSchema && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Version</label>
-              <Input
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                placeholder="x.x.x"
-                pattern="\d+\.\d+\.\d+"
-                title="Version must be in x.x.x format"
-                required
-                disabled={loading}
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Version</label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCustomVersion(!customVersion)}
+                >
+                  {customVersion ? "Use automatic version" : "Customize version"}
+                </Button>
+              </div>
+              {customVersion ? (
+                <Input
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value)}
+                  placeholder="x.x.x"
+                  pattern="\d+\.\d+\.\d+"
+                  title="Version must be in x.x.x format"
+                  required
+                  disabled={loading}
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Will be updated to v{nextVersion}
+                </div>
+              )}
             </div>
           )}
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading || (!isModified && !!initialSchema)}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {initialSchema ? 'Updating...' : 'Saving...'}
               </>
             ) : (
-              initialSchema ? `Update Schema to v${incrementPatchVersion(initialSchema.version)}` : 'Save Schema'
+              initialSchema 
+                ? `Update to v${customVersion ? version : nextVersion}` 
+                : 'Save Schema'
             )}
           </Button>
         </form>

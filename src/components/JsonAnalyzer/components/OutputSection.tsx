@@ -52,5 +52,4 @@ const OutputSection: React.FC<OutputSectionProps> = ({ fields, parsedJson }) => 
     </div>
   );
 };
-
 export default OutputSection;

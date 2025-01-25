@@ -13,6 +13,7 @@ interface TemplateSectionProps {
   onUpdateField: (id: string, field: Partial<TemplateField>) => void;
   rawJson?: string;
   initialSchema?: Schema;
+  isModified: boolean;
 }
 
 const TemplateSection: React.FC<TemplateSectionProps> = ({
@@ -20,7 +21,9 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
   onAddField,
   onRemoveField,
   onUpdateField,
-  rawJson
+  rawJson,
+  initialSchema,
+  isModified
 }) => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
@@ -33,14 +36,17 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
             <Plus className="h-4 w-4 mr-2" />
             Add Field
           </Button>
-          <Button onClick={() => setSaveDialogOpen(true)} size="sm" variant="outline">
+          <Button 
+            onClick={() => setSaveDialogOpen(true)} 
+            size="sm" 
+            variant={initialSchema ? "secondary" : "outline"}
+          >
             <Save className="h-4 w-4 mr-2" />
-            Save Schema
+            {initialSchema ? 'Update Schema' : 'Save Schema'}
           </Button>
         </div>
       </div>
       
-      {/* Existing fields mapping code */}
       {fields.map((field) => (
         <div key={field.id} className="flex items-center space-x-2">
           <Input
@@ -70,6 +76,8 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
         exampleJson={rawJson}
+        initialSchema={initialSchema}
+        isModified={isModified}
       />
     </div>
   );
