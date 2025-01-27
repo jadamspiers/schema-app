@@ -26,15 +26,31 @@ export function SchemaProvider({ children }: { children: React.ReactNode }) {
   const refreshSchemas = async (pipelineIds: string[]) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('schemas')
-        .select('*')
-        .in('pipeline_id', pipelineIds)
-        .order('created_at', { ascending: false });
+      const schemasResults = [];
+      const pipelinesResults = [];
 
-      if (error) throw error;
+      // Fetch schemas and pipelines
+      for (const pipelineId of pipelineIds) {
+        const [schemasResponse, pipelineResponse] = await Promise.all([
+          supabase
+            .from('schemas')
+            .select('*')
+            .eq('pipeline_id', pipelineId),
+          supabase
+            .from('pipelines')
+            .select('id, schema_order')
+            .eq('id', pipelineId)
+            .single()
+        ]);
 
-      const schemasMap = data.reduce((acc: SchemasByPipeline, schema) => {
+        if (schemasResponse.error) throw schemasResponse.error;
+        if (pipelineResponse.error) throw pipelineResponse.error;
+
+        if (schemasResponse.data) schemasResults.push(...schemasResponse.data);
+        if (pipelineResponse.data) pipelinesResults.push(pipelineResponse.data);
+      }
+
+      const schemasMap = schemasResults.reduce((acc: SchemasByPipeline, schema) => {
         if (!acc[schema.pipeline_id]) {
           acc[schema.pipeline_id] = [];
         }
@@ -42,9 +58,22 @@ export function SchemaProvider({ children }: { children: React.ReactNode }) {
         return acc;
       }, {});
 
+      // Apply schema ordering
+      pipelinesResults.forEach(pipeline => {
+        if (pipeline.schema_order && schemasMap[pipeline.id]) {
+          const orderMap = new Map(pipeline.schema_order.map((id: string, index: number) => [id, index]));
+          schemasMap[pipeline.id].sort((a, b) => {
+            const aIndex = (orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) as number;
+            const bIndex = (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER) as number;
+            return aIndex - bIndex;
+          });
+        }
+      });
+
       setSchemasByPipeline(schemasMap);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error refreshing schemas:', err);
     } finally {
       setLoading(false);
     }

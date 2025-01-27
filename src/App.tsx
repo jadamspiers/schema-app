@@ -10,6 +10,7 @@ import SyslogPage from './pages/SyslogPage';
 import JsonPage from './pages/JsonPage';
 import SourceSyslogPage from './pages/SourceSyslogPage';
 import SourceJsonPage from './pages/SourceJsonPage';
+import PipelineEditorPage from './pages/PipelineEditorPage';
 
 function App() {
   return (
@@ -57,6 +58,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <SourceJsonPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/source/:sourceId/pipeline/:pipelineId"
+                  element={
+                    <ProtectedRoute>
+                      <PipelineEditorPage />
                     </ProtectedRoute>
                   }
                 />

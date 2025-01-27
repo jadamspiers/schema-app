@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
-  title: string;
-  sourceName?: string;
-  showBack?: boolean;
-}
+    title: string;
+    sourceName?: string;
+    subtitle?: string;
+    showBack?: boolean;
+  }
 
 export function Header({ title, sourceName, showBack = false }: HeaderProps) {
   const navigate = useNavigate();

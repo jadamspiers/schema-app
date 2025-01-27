@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FileJson, FileCode, ScrollText, Loader2, Plus } from 'lucide-react';
 import { useSource } from '@/components/source/context/SourceContext';
@@ -25,14 +25,12 @@ const HomePage = () => {
     });
   };
 
-  const memoizedRefreshSchemas = useCallback(refreshSchemas, []);
-
   useEffect(() => {
     const pipelineIds = sources.flatMap(s => s.pipelines?.map(p => p.id) || []);
     if (pipelineIds.length > 0) {
-      memoizedRefreshSchemas(pipelineIds);
+      refreshSchemas(pipelineIds);
     }
-  }, [sources, memoizedRefreshSchemas]);
+  }, [sources, refreshSchemas]);
 
   if (sourcesLoading) {
     return (
@@ -82,7 +80,10 @@ const HomePage = () => {
               <div className="space-y-4">
                 {source.pipelines?.map(pipeline => (
                   <div key={pipeline.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 rounded-md"
+                      onClick={() => navigate(`/source/${source.id}/pipeline/${pipeline.id}`)}
+                    >
                       <h3 className="text-sm font-medium">{pipeline.name}</h3>
                       <div className="flex items-center gap-2">
                         <CreatePipelineDialog 

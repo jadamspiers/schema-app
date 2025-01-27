@@ -14,6 +14,7 @@ export interface Source {
     source_id: string;
     created_at: string;
     updated_at: string;
+    schema_order?: string[];
   }
 
   export interface CreatePipelineInput {
