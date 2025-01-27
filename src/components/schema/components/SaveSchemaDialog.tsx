@@ -7,16 +7,17 @@ import { useParams } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { TemplateField } from '@/components/JsonAnalyzer/components/types';
+import { useSource } from '@/components/source/context/SourceContext';
 import type { Schema } from '../types';
 
 interface SaveSchemaDialogProps {
-    fields: TemplateField[];
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    exampleJson?: string;
-    initialSchema?: Schema;
-    isModified?: boolean;  // Add this line
-  }
+  fields: TemplateField[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  exampleJson?: string;
+  initialSchema?: Schema;
+  isModified?: boolean;
+}
 
 export function SaveSchemaDialog({ 
   fields, 
@@ -31,8 +32,12 @@ export function SaveSchemaDialog({
   const [customVersion, setCustomVersion] = useState(false);
   const [loading, setLoading] = useState(false);
   const { sourceId } = useParams();
+  const { sources } = useSource();
   const { createSchema, updateSchema } = useSchema();
   const { toast } = useToast();
+
+  const source = sources.find(s => s.id === sourceId);
+  const defaultPipeline = source?.pipelines?.[0];
 
   const incrementPatchVersion = (currentVersion: string) => {
     const [major, minor, patch] = currentVersion.split('.').map(Number);
@@ -43,12 +48,13 @@ export function SaveSchemaDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sourceId) return;
+    if (!sourceId || !defaultPipeline) return;
 
     try {
       setLoading(true);
       const schemaData = {
         name,
+        pipeline_id: defaultPipeline.id,
         source_id: sourceId,
         fields: fields.map(({ id, key, path }) => ({
           id,
@@ -141,7 +147,11 @@ export function SaveSchemaDialog({
               )}
             </div>
           )}
-          <Button type="submit" className="w-full" disabled={loading || (!isModified && !!initialSchema)}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={loading || (!isModified && !!initialSchema)}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

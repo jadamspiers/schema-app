@@ -1,19 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from 'lucide-react';
 import JsonNode from './components/JsonNode';
 import TemplateSection from './components/TemplateSection';
 import OutputSection from './components/OutputSection';
 import { useJsonParser } from './hooks/useJsonParser';
 import { useTemplateFields } from './hooks/useTemplateFields';
+import { DeleteSchemaDialog } from '../schema/components/DeleteSchemaDialog';
 import type { Schema } from '../schema/types';
-
 
 interface JsonAnalyzerProps {
   initialSchema?: Schema;
 }
 
 const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { rawJson, parsedJson, handleJsonInput } = useJsonParser(initialSchema?.example_json);
   const {
     fields,
@@ -21,12 +24,11 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
     addField,
     removeField,
     updateField,
-    handleValueSelect,
+    handleValueSelect
   } = useTemplateFields(initialSchema?.fields || [
     { id: '1', key: 'field1', path: '', value: '' },
     { id: '2', key: 'field2', path: '', value: '' }
   ]);
-
 
   return (
     <div className="space-y-4">
@@ -36,9 +38,20 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
             <h2 className="text-lg font-semibold">{initialSchema.name}</h2>
             <span className="text-sm text-muted-foreground">v{initialSchema.version}</span>
           </div>
-          {isModified && (
-            <span className="text-sm text-yellow-600">Unsaved changes</span>
-          )}
+          <div className="flex items-center gap-2">
+            {isModified && (
+              <span className="text-sm text-yellow-600">Unsaved changes</span>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Schema
+            </Button>
+          </div>
         </div>
       )}
       
@@ -106,6 +119,14 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
           )}
         </div>
       </div>
+
+      {initialSchema && (
+        <DeleteSchemaDialog
+          schema={initialSchema}
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+        />
+      )}
     </div>
   );
 };

@@ -1,28 +1,38 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileJson, FileCode, ScrollText, Loader2 } from 'lucide-react';
+import { FileJson, FileCode, ScrollText, Loader2, Plus } from 'lucide-react';
 import { useSource } from '@/components/source/context/SourceContext';
 import { useSchema } from '@/components/schema/hooks/useSchema';
 import { CreateSourceDialog } from '@/components/source/components/CreateSourceDialog';
+import { CreatePipelineDialog } from '@/components/source/components/CreatePipelineDialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { Schema } from '@/components/schema/types';
 
 const HomePage = () => {
   const { sources, loading: sourcesLoading } = useSource();
-  const { schemasBySource, refreshSchemas } = useSchema();
+  const { schemasByPipeline, refreshSchemas } = useSchema();
   const navigate = useNavigate();
   
-  const handleSchemaClick = (sourceId: string, schema: Schema) => {
-    navigate(`/source/${sourceId}/json`, { 
+  const handleSchemaClick = (pipelineId: string, schema: Schema) => {
+    const source = sources.find(s => 
+      s.pipelines?.some(p => p.id === pipelineId)
+    );
+    if (!source) return;
+    
+    navigate(`/source/${source.id}/json`, { 
       state: { selectedSchema: schema } 
     });
   };
 
+  const memoizedRefreshSchemas = useCallback(refreshSchemas, []);
+
   useEffect(() => {
-    if (sources.length > 0) {
-      refreshSchemas(sources.map(s => s.id));
+    const pipelineIds = sources.flatMap(s => s.pipelines?.map(p => p.id) || []);
+    if (pipelineIds.length > 0) {
+      memoizedRefreshSchemas(pipelineIds);
     }
-  }, [sources, refreshSchemas]);
+  }, [sources, memoizedRefreshSchemas]);
 
   if (sourcesLoading) {
     return (
@@ -69,30 +79,44 @@ const HomePage = () => {
                   </Card>
                 </Link>
               </div>
-              
-              {/* Schemas Section */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Saved Schemas</h3>
-                <div className="grid gap-2">
-                  {schemasBySource[source.id]?.map(schema => (
-                    <div
-                      key={schema.id}
-                      className="flex items-center gap-2 p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
-                      onClick={() => handleSchemaClick(source.id, schema)}
-                    >
+              <div className="space-y-4">
+                {source.pipelines?.map(pipeline => (
+                  <div key={pipeline.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium">{pipeline.name}</h3>
                       <div className="flex items-center gap-2">
-                        <ScrollText className="h-4 w-4" />
-                        <span className="text-sm">{schema.name}</span>
+                        <CreatePipelineDialog 
+                          sourceId={source.id} 
+                          existingSchemas={schemasByPipeline[pipeline.id] || []}
+                        />
+                        <Button variant="ghost" size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Schema
+                        </Button>
                       </div>
-                      <span className="text-sm">{schema.version}</span>
                     </div>
-                  ))}
-                  {!schemasBySource[source.id]?.length && (
-                    <div className="text-sm text-muted-foreground p-2">
-                      No schemas saved yet
+                    <div className="grid gap-2">
+                      {schemasByPipeline[pipeline.id]?.map(schema => (
+                        <div
+                          key={schema.id}
+                          className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
+                          onClick={() => handleSchemaClick(pipeline.id, schema)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ScrollText className="h-4 w-4" />
+                            <span className="text-sm">{schema.name}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">v{schema.version}</span>
+                        </div>
+                      ))}
+                      {!schemasByPipeline[pipeline.id]?.length && (
+                        <div className="text-sm text-muted-foreground p-2">
+                          No schemas saved yet
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

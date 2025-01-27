@@ -1,6 +1,7 @@
 export interface Schema {
     id: string;
     name: string;
+    pipeline_id: string;
     source_id: string;
     user_id: string;
     fields: SchemaField[];
@@ -12,6 +13,7 @@ export interface Schema {
   
   export interface CreateSchemaInput {
     name: string;
+    pipeline_id: string;
     source_id: string;
     fields: SchemaField[];
     example_json?: string;

@@ -23,7 +23,10 @@ export function SourceProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const { data, error } = await supabase
         .from('sources')
-        .select('*')
+        .select(`
+          *,
+          pipelines (*)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -39,7 +42,10 @@ export function SourceProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from('sources')
       .insert({ name, description })
-      .select()
+      .select(`
+        *,
+        pipelines (*)
+      `)
       .single();
 
     if (error) throw error;

@@ -14,8 +14,8 @@ import SourceJsonPage from './pages/SourceJsonPage';
 function App() {
   return (
     <AuthProvider>
-      <SchemaProvider>
-        <SourceProvider>
+      <SourceProvider>
+        <SchemaProvider>
           <Router>
             <div className="min-h-screen bg-background">
               <Routes>
@@ -64,8 +64,8 @@ function App() {
               <Toaster />
             </div>
           </Router>
-        </SourceProvider>
-      </SchemaProvider>
+        </SchemaProvider>
+      </SourceProvider>
     </AuthProvider>
   );
 }
