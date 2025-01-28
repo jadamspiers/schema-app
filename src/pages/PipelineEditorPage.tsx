@@ -5,12 +5,14 @@ import { Header } from '@/components/layout/Header';
 import { PipelineEditor } from '@/components/pipeline/components/PipelineEditor';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 
 const PipelineEditorPage = () => {
   const { sourceId, pipelineId } = useParams();
   const { sources } = useSource();
   const { schemasByPipeline, refreshSchemas } = useSchema();
   const { toast } = useToast();
+  const [sourceData, setSourceData] = useState<Record<string, unknown> | null>(null);
   
   const handleOrderChange = async (schemaIds: string[]) => {
     if (!pipelineId) return;
@@ -40,6 +42,38 @@ const PipelineEditorPage = () => {
     }
   };
 
+  const handleSourceJsonChange = async (json: Record<string, unknown>) => {
+    setSourceData(json);
+  };
+
+  useEffect(() => {
+    const fetchSourceData = async () => {
+      if (!sourceId) return;
+      
+      const { data, error } = await supabase
+        .from('sources')
+        .select('id, name')
+        .eq('id', sourceId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching source data:', error);
+        toast({
+          title: 'Error loading source data',
+          description: 'Failed to load source data',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      if (data?.name) {
+        setSourceData(data.name);
+      }
+    };
+
+    fetchSourceData();
+  }, [sourceId, toast]);
+
   const source = sources.find(s => s.id === sourceId);
   const pipeline = source?.pipelines?.find(p => p.id === pipelineId);
   const schemas = schemasByPipeline[pipelineId || ''] || [];
@@ -57,6 +91,9 @@ const PipelineEditorPage = () => {
           schemas={schemas} 
           pipelineId={pipelineId || ''}
           onOrderChange={handleOrderChange}
+          sourceData={sourceData || {}}
+          onSourceJsonChange={handleSourceJsonChange}
+          sourceId={sourceId || ''}
         />
       </div>
     </div>

@@ -11,15 +11,19 @@ export interface Source {
   export interface Pipeline {
     id: string;
     name: string;
+    version: string;
     source_id: string;
     created_at: string;
     updated_at: string;
     schema_order?: string[];
+    is_latest: boolean;
+    source_json?: Record<string, unknown>;
   }
 
   export interface CreatePipelineInput {
     name: string;
     source_id: string;
+    version: string;
   }
 
   export interface CreateSourceInput {

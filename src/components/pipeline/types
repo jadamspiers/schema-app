@@ -1,0 +1,11 @@
+export interface FieldTransformation {
+  type: string;
+  options?: {
+    regexPattern?: string;
+    regexReplacement?: string;
+    numberFormat?: string;
+    booleanTrueValue?: unknown;
+    booleanFalseValue?: unknown;
+  };
+  sourceFieldId: string;
+} 

@@ -17,50 +17,52 @@ interface CreatePipelineDialogProps {
 export function CreatePipelineDialog({ sourceId, existingSchemas }: CreatePipelineDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
   const [selectedSchemas, setSelectedSchemas] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const { refreshSources } = useSource();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
-      setLoading(true);
-
-      // Create new pipeline
-      const { data: pipeline, error: pipelineError } = await supabase
+      const { data: existingPipelines, error: fetchError } = await supabase
         .from('pipelines')
-        .insert({ name, source_id: sourceId })
-        .select()
-        .single();
+        .select('version')
+        .eq('source_id', sourceId)
+        .eq('name', name);
 
-      if (pipelineError) throw pipelineError;
+      if (fetchError) throw fetchError;
 
-      // Update selected schemas to use new pipeline
-      if (selectedSchemas.length > 0) {
-        const { error: updateError } = await supabase
-          .from('schemas')
-          .update({ pipeline_id: pipeline.id })
-          .in('id', selectedSchemas);
+      const version = existingPipelines?.length ? '0.0.1' : '1.0.0';
 
-        if (updateError) throw updateError;
-      }
+      const { error } = await supabase
+        .from('pipelines')
+        .insert({
+          name,
+          source_id: sourceId,
+          version,
+          is_latest: true,
+          schema_order: selectedSchemas
+        });
+
+      if (error) throw error;
 
       await refreshSources();
       setOpen(false);
       setName('');
       setSelectedSchemas([]);
-      
       toast({
-        title: "Success",
-        description: "Pipeline created successfully",
+        title: 'Success',
+        description: `Pipeline created with version ${version}`,
       });
     } catch (error) {
       console.error('Failed to create pipeline:', error);
       toast({
-        title: "Error",
-        description: "Failed to create pipeline",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to create pipeline',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);

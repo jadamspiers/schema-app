@@ -1,14 +1,27 @@
 import { FieldMapping } from '../types';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Wand2 } from 'lucide-react';
+import { useState } from 'react';
+import { TransformationDialog } from './TransformationDialog';
 
 interface SchemaConnectionProps {
   mapping: FieldMapping;
   sourceElement: HTMLElement | null;
   targetElement: HTMLElement | null;
   onDelete: (mapping: FieldMapping) => void;
+  pipelineId: string;
+  onUpdate: (mapping: FieldMapping) => void;
 }
 
-export function SchemaConnection({ mapping, sourceElement, targetElement, onDelete }: SchemaConnectionProps) {
+export function SchemaConnection({ 
+  mapping, 
+  sourceElement, 
+  targetElement, 
+  onDelete,
+  pipelineId,
+  onUpdate 
+}: SchemaConnectionProps) {
+  const [transformOpen, setTransformOpen] = useState(false);
+  
   if (!sourceElement || !targetElement) return null;
 
   const containerElement = sourceElement.closest('.relative');
@@ -31,25 +44,43 @@ export function SchemaConnection({ mapping, sourceElement, targetElement, onDele
       <svg style={{ width: '100%', height: '100%' }}>
         <path
           d={path}
-          stroke="hsl(var(--primary))"
+          stroke={mapping.transformation?.type === 'none' ? 'hsl(var(--primary))' : 'hsl(var(--warning))'}
           strokeWidth="2"
           fill="none"
           strokeDasharray="4"
         />
       </svg>
-      <button
-        onClick={() => onDelete(mapping)}
+      <div
         style={{
           position: 'absolute',
           left: (startX + endX) / 2,
           top: (startY + endY) / 2,
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'auto',
+          display: 'flex',
+          gap: '0.5rem',
         }}
-        className="h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 flex items-center justify-center"
       >
-        <Trash2 className="h-4 w-4" />
-      </button>
+        <button
+          onClick={() => setTransformOpen(true)}
+          className="h-6 w-6 rounded-full bg-warning text-warning-foreground hover:bg-warning/90 flex items-center justify-center"
+        >
+          <Wand2 className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => onDelete(mapping)}
+          className="h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 flex items-center justify-center"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+      <TransformationDialog
+        open={transformOpen}
+        onOpenChange={setTransformOpen}
+        mapping={mapping}
+        pipelineId={pipelineId}
+        onUpdate={onUpdate}
+      />
     </div>
   );
 } 

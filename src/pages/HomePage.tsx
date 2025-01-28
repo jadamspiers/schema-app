@@ -1,32 +1,46 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileJson, FileCode, ScrollText, Loader2, Plus } from 'lucide-react';
+import { FileJson, FileCode, Loader2, Trash2, GitBranch } from 'lucide-react';
 import { useSource } from '@/components/source/context/SourceContext';
 import { useSchema } from '@/components/schema/hooks/useSchema';
 import { CreateSourceDialog } from '@/components/source/components/CreateSourceDialog';
 import { CreatePipelineDialog } from '@/components/source/components/CreatePipelineDialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { Schema } from '@/components/schema/types';
+import { DeleteSourceDialog } from '@/components/source/components/DeleteSourceDialog';
+import type { Source } from '@/components/source/types';
+import { FieldTransformation } from '@/components/pipeline/types';
+
+export interface Pipeline {
+  id: string;
+  name: string;
+  version: string;
+  source_id: string;
+  created_at: string;
+  updated_at: string;
+  schema_order?: string[];
+  is_latest: boolean;
+  source_json?: Record<string, unknown>;
+}
+
+export interface FieldMapping {
+  sourceSchemaId: string;
+  sourceFieldId: string;
+  targetSchemaId: string;
+  targetFieldId: string;
+  transformation?: FieldTransformation;
+  sourceType: 'json' | 'schema';
+  sourceReference: string;
+}
 
 const HomePage = () => {
   const { sources, loading: sourcesLoading } = useSource();
-  const { schemasByPipeline, refreshSchemas } = useSchema();
+  const { refreshSchemas } = useSchema();
   const navigate = useNavigate();
+  const [sourceToDelete, setSourceToDelete] = useState<Source | null>(null);
   
-  const handleSchemaClick = (pipelineId: string, schema: Schema) => {
-    const source = sources.find(s => 
-      s.pipelines?.some(p => p.id === pipelineId)
-    );
-    if (!source) return;
-    
-    navigate(`/source/${source.id}/json`, { 
-      state: { selectedSchema: schema } 
-    });
-  };
-
   useEffect(() => {
-    const pipelineIds = sources.flatMap(s => s.pipelines?.map(p => p.id) || []);
+    const pipelineIds = sources.flatMap(s => s.pipelines?.map(p => p.id) || [ ]);
     if (pipelineIds.length > 0) {
       refreshSchemas(pipelineIds);
     }
@@ -51,8 +65,26 @@ const HomePage = () => {
         {sources.map((source) => (
           <Card key={source.id} className="hover:border-primary transition-colors">
             <CardHeader>
-              <CardTitle>{source.name}</CardTitle>
-              <CardDescription>{source.description}</CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{source.name}</CardTitle>
+                  <CardDescription>{source.description}</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CreatePipelineDialog 
+                    sourceId={source.id} 
+                    existingSchemas={[]} 
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSourceToDelete(source)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -77,47 +109,30 @@ const HomePage = () => {
                   </Card>
                 </Link>
               </div>
-              <div className="space-y-4">
-                {source.pipelines?.map(pipeline => (
-                  <div key={pipeline.id} className="space-y-2">
-                    <div 
-                      className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 rounded-md"
-                      onClick={() => navigate(`/source/${source.id}/pipeline/${pipeline.id}`)}
-                    >
-                      <h3 className="text-sm font-medium">{pipeline.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <CreatePipelineDialog 
-                          sourceId={source.id} 
-                          existingSchemas={schemasByPipeline[pipeline.id] || []}
-                        />
-                        <Button variant="ghost" size="sm">
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Schema
-                        </Button>
+              
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Pipelines</h3>
+                {source.pipelines && source.pipelines.length > 0 ? (
+                  <div className="space-y-2">
+                    {source.pipelines.map(pipeline => (
+                      <div
+                        key={pipeline.id}
+                        onClick={() => navigate(`/source/${source.id}/pipeline/${pipeline.id}`)}
+                        className="flex items-center justify-between p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
+                      >
+                        <div className="flex items-center gap-2">
+                          <GitBranch className="h-4 w-4" />
+                          <span className="text-sm font-medium">{pipeline.name}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">v{pipeline.version}</span>
                       </div>
-                    </div>
-                    <div className="grid gap-2">
-                      {schemasByPipeline[pipeline.id]?.map(schema => (
-                        <div
-                          key={schema.id}
-                          className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
-                          onClick={() => handleSchemaClick(pipeline.id, schema)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <ScrollText className="h-4 w-4" />
-                            <span className="text-sm">{schema.name}</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">v{schema.version}</span>
-                        </div>
-                      ))}
-                      {!schemasByPipeline[pipeline.id]?.length && (
-                        <div className="text-sm text-muted-foreground p-2">
-                          No schemas saved yet
-                        </div>
-                      )}
-                    </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="text-sm text-muted-foreground p-2">
+                    No pipelines created yet
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -129,6 +144,15 @@ const HomePage = () => {
           </div>
         )}
       </div>
+
+      {sourceToDelete && (
+        <DeleteSourceDialog
+          sourceId={sourceToDelete.id}
+          sourceName={sourceToDelete.name}
+          open={!!sourceToDelete}
+          onOpenChange={(open) => !open && setSourceToDelete(null)}
+        />
+      )}
     </div>
   );
 };

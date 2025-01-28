@@ -48,7 +48,25 @@ export function SaveSchemaDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sourceId || !defaultPipeline) return;
+    
+    // Add debugging
+    console.log('Submit triggered with:', {
+      sourceId,
+      defaultPipeline,
+      name,
+      fields,
+      exampleJson
+    });
+
+    if (!sourceId || !defaultPipeline) {
+      console.error('Missing required data:', { sourceId, defaultPipeline });
+      toast({
+        title: "Error",
+        description: "Missing required source or pipeline data",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setLoading(true);
@@ -63,8 +81,10 @@ export function SaveSchemaDialog({
           value: path
         })),
         example_json: exampleJson,
-        version: customVersion ? version : nextVersion
+        version: customVersion ? version : '0.0.1'
       };
+
+      console.log('Creating schema with data:', schemaData);
 
       if (initialSchema) {
         await updateSchema(initialSchema.id, schemaData);
@@ -159,7 +179,7 @@ export function SaveSchemaDialog({
               </>
             ) : (
               initialSchema 
-                ? `Update to v${customVersion ? version : nextVersion}` 
+                ? `Update to v${customVersion ? version : '0.0.1'}` 
                 : 'Save Schema'
             )}
           </Button>

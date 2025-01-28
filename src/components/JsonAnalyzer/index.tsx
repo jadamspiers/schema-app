@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,17 @@ import OutputSection from './components/OutputSection';
 import { useJsonParser } from './hooks/useJsonParser';
 import { useTemplateFields } from './hooks/useTemplateFields';
 import { DeleteSchemaDialog } from '../schema/components/DeleteSchemaDialog';
-import type { Schema } from '../schema/types';
+import type { Schema, SchemaField } from '../schema/types';
 
-interface JsonAnalyzerProps {
+export interface JsonAnalyzerProps {
+  onFieldsChange?: (fields: SchemaField[]) => void;
+  sourceJson?: Record<string, unknown>;
+  selectedSourceId?: string;
+  existingSchemas?: Schema[];
   initialSchema?: Schema;
 }
 
-const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
+const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema, onFieldsChange }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { rawJson, parsedJson, handleJsonInput } = useJsonParser(initialSchema?.example_json);
   const {
@@ -29,6 +33,10 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema }) => {
     { id: '1', key: 'field1', path: '', value: '' },
     { id: '2', key: 'field2', path: '', value: '' }
   ]);
+
+  useEffect(() => {
+    onFieldsChange?.(fields);
+  }, [fields, onFieldsChange]);
 
   return (
     <div className="space-y-4">
