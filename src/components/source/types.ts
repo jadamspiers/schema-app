@@ -26,3 +26,12 @@ export interface Source {
     name: string;
     description?: string;
   }
+
+  export interface SourceContextType {
+    sources: Source[];
+    loading: boolean;
+    error: string | null;
+    refreshSources: () => Promise<void>;
+    createSource: (name: string, description?: string) => Promise<Source>;
+    deleteSource: (id: string) => Promise<void>;
+  }

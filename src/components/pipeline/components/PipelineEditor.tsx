@@ -4,13 +4,16 @@ import { useState, useRef, useEffect } from 'react';
 import { FieldMapping } from '../types';
 import { SchemaConnection } from './SchemaConnection';
 import { DragHandleDots2Icon } from '@radix-ui/react-icons';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface PipelineEditorProps {
   schemas: Schema[];
+  pipelineId: string;
   onOrderChange?: (schemaIds: string[]) => void;
 }
 
-export function PipelineEditor({ schemas, onOrderChange }: PipelineEditorProps) {
+export function PipelineEditor({ schemas, pipelineId, onOrderChange }: PipelineEditorProps) {
   const [localSchemas, setLocalSchemas] = useState(schemas);
   const [selectedField, setSelectedField] = useState<{
     schemaId: string;
@@ -19,10 +22,39 @@ export function PipelineEditor({ schemas, onOrderChange }: PipelineEditorProps) 
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [draggingSchema, setDraggingSchema] = useState<string | null>(null);
   const fieldRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const { toast } = useToast();
 
   useEffect(() => {
     setLocalSchemas(schemas);
   }, [schemas]);
+
+  useEffect(() => {
+    // Load existing mappings
+    const loadMappings = async () => {
+      const { data, error } = await supabase
+        .from('field_mappings')
+        .select('*')
+        .eq('pipeline_id', pipelineId);
+        
+      if (error) {
+        toast({
+          title: 'Error loading mappings',
+          description: 'Failed to load field mappings',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setMappings(data.map(m => ({
+        sourceSchemaId: m.source_schema_id,
+        sourceFieldId: m.source_field_id,
+        targetSchemaId: m.target_schema_id,
+        targetFieldId: m.target_field_id
+      })));
+    };
+
+    loadMappings();
+  }, [pipelineId, toast]);
 
   const handleDragStart = (e: React.DragEvent, schemaId: string) => {
     setDraggingSchema(schemaId);
@@ -51,24 +83,130 @@ export function PipelineEditor({ schemas, onOrderChange }: PipelineEditorProps) 
     setDraggingSchema(null);
   };
 
-  const handleFieldClick = (schemaId: string, field: SchemaField) => {
+  const handleFieldClick = async (schemaId: string, field: SchemaField) => {
     if (!selectedField) {
       setSelectedField({ schemaId, field });
     } else if (selectedField.schemaId !== schemaId) {
-      // Create new mapping
       const newMapping: FieldMapping = {
         sourceSchemaId: selectedField.schemaId,
         sourceFieldId: selectedField.field.id,
         targetSchemaId: schemaId,
         targetFieldId: field.id
       };
-      setMappings([...mappings, newMapping]);
-      setSelectedField(null);
+
+      if (wouldCreateCycle(newMapping)) {
+        toast({
+          title: 'Invalid Mapping',
+          description: 'This mapping would create a circular dependency',
+          variant: 'destructive',
+        });
+        setSelectedField(null);
+        return;
+      }
+
+      try {
+        const { error } = await supabase
+          .from('field_mappings')
+          .insert({
+            pipeline_id: pipelineId,
+            source_schema_id: newMapping.sourceSchemaId,
+            source_field_id: newMapping.sourceFieldId,
+            target_schema_id: newMapping.targetSchemaId,
+            target_field_id: newMapping.targetFieldId
+          });
+
+        if (error) throw error;
+        
+        setMappings([...mappings, newMapping]);
+        setSelectedField(null);
+      } catch (error) {
+        toast({
+          title: 'Error creating mapping',
+          description: error instanceof Error ? error.message : 'Failed to create field mapping',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  const handleDeleteMapping = async (mapping: FieldMapping) => {
+    try {
+      const { error } = await supabase
+        .from('field_mappings')
+        .delete()
+        .match({
+          pipeline_id: pipelineId,
+          source_schema_id: mapping.sourceSchemaId,
+          source_field_id: mapping.sourceFieldId,
+          target_schema_id: mapping.targetSchemaId,
+          target_field_id: mapping.targetFieldId
+        });
+
+      if (error) throw error;
+      
+      setMappings(mappings.filter(m => 
+        !(m.sourceSchemaId === mapping.sourceSchemaId && 
+          m.sourceFieldId === mapping.sourceFieldId &&
+          m.targetSchemaId === mapping.targetSchemaId &&
+          m.targetFieldId === mapping.targetFieldId)
+      ));
+
+      toast({
+        title: 'Mapping deleted',
+        description: 'Field mapping has been removed',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error deleting mapping',
+        description: error instanceof Error ? error.message : 'Failed to delete field mapping',
+        variant: 'destructive',
+      });
     }
   };
 
   const getFieldRef = (schemaId: string, fieldId: string) => {
     return fieldRefs.current.get(`${schemaId}-${fieldId}`) || null;
+  };
+
+  const wouldCreateCycle = (newMapping: FieldMapping) => {
+    // Create a graph of schema dependencies
+    const graph = new Map<string, Set<string>>();
+    
+    // Initialize graph with existing mappings
+    for (const mapping of mappings) {
+      if (!graph.has(mapping.sourceSchemaId)) {
+        graph.set(mapping.sourceSchemaId, new Set());
+      }
+      graph.get(mapping.sourceSchemaId)?.add(mapping.targetSchemaId);
+    }
+    
+    // Add the new mapping
+    if (!graph.has(newMapping.sourceSchemaId)) {
+      graph.set(newMapping.sourceSchemaId, new Set());
+    }
+    graph.get(newMapping.sourceSchemaId)?.add(newMapping.targetSchemaId);
+
+    // Check for cycles using DFS
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+
+    const hasCycle = (schemaId: string): boolean => {
+      if (recursionStack.has(schemaId)) return true;
+      if (visited.has(schemaId)) return false;
+
+      visited.add(schemaId);
+      recursionStack.add(schemaId);
+
+      const dependencies = graph.get(schemaId) || new Set();
+      for (const dependency of dependencies) {
+        if (hasCycle(dependency)) return true;
+      }
+
+      recursionStack.delete(schemaId);
+      return false;
+    };
+
+    return hasCycle(newMapping.sourceSchemaId);
   };
 
   return (
@@ -126,6 +264,7 @@ export function PipelineEditor({ schemas, onOrderChange }: PipelineEditorProps) 
           mapping={mapping}
           sourceElement={getFieldRef(mapping.sourceSchemaId, mapping.sourceFieldId)}
           targetElement={getFieldRef(mapping.targetSchemaId, mapping.targetFieldId)}
+          onDelete={handleDeleteMapping}
         />
       ))}
     </div>

@@ -55,6 +55,7 @@ const PipelineEditorPage = () => {
       <div className="container mx-auto py-8">
         <PipelineEditor 
           schemas={schemas} 
+          pipelineId={pipelineId || ''}
           onOrderChange={handleOrderChange}
         />
       </div>

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Source } from '../types';
 
+export const SourceContext = createContext<SourceContextType | undefined>(undefined);
+
 interface SourceContextType {
   sources: Source[];
   loading: boolean;
@@ -10,8 +12,6 @@ interface SourceContextType {
   createSource: (name: string, description?: string) => Promise<Source>;
   deleteSource: (id: string) => Promise<void>;
 }
-
-const SourceContext = createContext<SourceContextType | undefined>(undefined);
 
 export function SourceProvider({ children }: { children: React.ReactNode }) {
   const [sources, setSources] = useState<Source[]>([]);
