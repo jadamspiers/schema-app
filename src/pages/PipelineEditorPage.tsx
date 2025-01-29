@@ -13,6 +13,7 @@ const PipelineEditorPage = () => {
   const { schemasByPipeline, refreshSchemas } = useSchema();
   const { toast } = useToast();
   const [sourceData, setSourceData] = useState<Record<string, unknown> | null>(null);
+  const [sourceName, setSourceName] = useState<string | null>(null);
   
   const handleOrderChange = async (schemaIds: string[]) => {
     if (!pipelineId) return;
@@ -67,12 +68,37 @@ const PipelineEditorPage = () => {
       }
       
       if (data?.name) {
-        setSourceData(data.name);
+        setSourceName(data.name);
       }
     };
 
     fetchSourceData();
   }, [sourceId, toast]);
+
+  useEffect(() => {
+    const fetchSourceJson = async () => {
+      if (!pipelineId) return;
+      
+      const { data, error } = await supabase
+        .from('pipelines')
+        .select('source_json')
+        .eq('id', pipelineId)
+        .single();
+        
+      if (error) {
+        toast({
+          title: 'Error loading source JSON',
+          description: 'Failed to load pipeline source JSON',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setSourceData(data.source_json);
+    };
+
+    fetchSourceJson();
+  }, [pipelineId, toast]);
 
   const source = sources.find(s => s.id === sourceId);
   const pipeline = source?.pipelines?.find(p => p.id === pipelineId);
@@ -82,7 +108,7 @@ const PipelineEditorPage = () => {
     <div>
       <Header 
         title="Pipeline Editor" 
-        sourceName={source?.name}
+        sourceName={sourceName || source?.name}
         subtitle={pipeline?.name}
         showBack 
       />

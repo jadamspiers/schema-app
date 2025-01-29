@@ -11,15 +11,22 @@ import { useTemplateFields } from './hooks/useTemplateFields';
 import { DeleteSchemaDialog } from '../schema/components/DeleteSchemaDialog';
 import type { Schema, SchemaField } from '../schema/types';
 
-export interface JsonAnalyzerProps {
+interface JsonAnalyzerProps {
   onFieldsChange?: (fields: SchemaField[]) => void;
+  initialSchema?: Schema;
+  isEditMode?: boolean;
+  onSave?: (fields: SchemaField[]) => void;
   sourceJson?: Record<string, unknown>;
   selectedSourceId?: string;
   existingSchemas?: Schema[];
-  initialSchema?: Schema;
 }
 
-const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema, onFieldsChange }) => {
+const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({
+  initialSchema,
+  onFieldsChange,
+  isEditMode,
+  onSave,
+}) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { rawJson, parsedJson, handleJsonInput } = useJsonParser(initialSchema?.example_json);
   const {
@@ -35,8 +42,10 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema, onFieldsChan
   ]);
 
   useEffect(() => {
-    onFieldsChange?.(fields);
-  }, [fields, onFieldsChange]);
+    if (!isEditMode) {
+      onFieldsChange?.(fields);
+    }
+  }, [fields, onFieldsChange, isEditMode]);
 
   return (
     <div className="space-y-4">
@@ -111,6 +120,8 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema, onFieldsChan
                 rawJson={rawJson}
                 initialSchema={initialSchema}
                 isModified={isModified}
+                isEditMode={isEditMode}
+                onSave={() => onSave?.(fields)}
               />
             </CardContent>
           </Card>
@@ -137,6 +148,6 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({ initialSchema, onFieldsChan
       )}
     </div>
   );
-};
+}
 
 export default JsonAnalyzer;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,16 @@ interface SourceJsonEditorProps {
 }
 
 export function SourceJsonEditor({ pipelineId, initialJson, onJsonChange }: SourceJsonEditorProps) {
-  const [rawJson, setRawJson] = useState(initialJson ? JSON.stringify(initialJson, null, 2) : '');
+  const [rawJson, setRawJson] = useState(() => 
+    initialJson ? JSON.stringify(initialJson, null, 2) : '{}'
+  );
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (initialJson) {
+      setRawJson(JSON.stringify(initialJson, null, 2));
+    }
+  }, [initialJson]);
 
   const handleSave = async () => {
     try {

@@ -12,8 +12,8 @@ import { SourceJsonEditor } from './SourceJsonEditor';
 import { Button } from "@/components/ui/button";
 import { CreateSchemaDialog } from './CreateSchemaDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import JsonAnalyzer from "@/components/JsonAnalyzer";
 import { DeleteSchemaFromPipelineDialog } from './DeleteSchemaFromPipelineDialog';
+import { SchemaFieldEditor } from '@/components/schema/components/SchemaFieldEditor';
 
 interface PipelineEditorProps {
   schemas: Schema[];
@@ -591,12 +591,14 @@ export function PipelineEditor({
               <DialogHeader>
                 <DialogTitle>Edit Schema Fields</DialogTitle>
               </DialogHeader>
-              <JsonAnalyzer
-                initialSchema={localSchemas.find(s => s.id === editingSchemaId)}
-                onFieldsChange={(fields: SchemaField[]) => {
+              <SchemaFieldEditor
+                schema={localSchemas.find(s => s.id === editingSchemaId)!}
+                sourceJson={sourceData}
+                onSave={(fields) => {
                   handleFieldUpdate(editingSchemaId, fields);
                   setEditingSchemaId(null);
                 }}
+                onCancel={() => setEditingSchemaId(null)}
               />
             </DialogContent>
           </Dialog>

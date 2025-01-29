@@ -3,17 +3,19 @@ import { Plus, Trash2, Save } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SaveSchemaDialog } from '@/components/schema/components/SaveSchemaDialog';
-import type { TemplateField } from './types';
 import type { Schema } from '@/components/schema/types';
+import type { SchemaField } from '@/components/schema/types';
 
 interface TemplateSectionProps {
-  fields: TemplateField[];
+  fields: SchemaField[];
   onAddField: () => void;
   onRemoveField: (id: string) => void;
-  onUpdateField: (id: string, field: Partial<TemplateField>) => void;
-  rawJson?: string;
+  onUpdateField: (id: string, updates: Partial<SchemaField>) => void;
+  rawJson: string;
   initialSchema?: Schema;
   isModified: boolean;
+  isEditMode?: boolean;
+  onSave?: () => void;
 }
 
 const TemplateSection: React.FC<TemplateSectionProps> = ({
@@ -23,7 +25,9 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
   onUpdateField,
   rawJson,
   initialSchema,
-  isModified
+  isModified,
+  isEditMode,
+  onSave
 }) => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
@@ -36,14 +40,26 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
             <Plus className="h-4 w-4 mr-2" />
             Add Field
           </Button>
-          <Button 
-            onClick={() => setSaveDialogOpen(true)} 
-            size="sm" 
-            variant={initialSchema ? "secondary" : "outline"}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {initialSchema ? 'Update Schema' : 'Save Schema'}
-          </Button>
+          {isEditMode ? (
+            <Button 
+              onClick={onSave}
+              size="sm" 
+              variant="default"
+              disabled={!isModified}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => setSaveDialogOpen(true)} 
+              size="sm" 
+              variant={initialSchema ? "secondary" : "outline"}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {initialSchema ? 'Update Schema' : 'Save Schema'}
+            </Button>
+          )}
         </div>
       </div>
       
