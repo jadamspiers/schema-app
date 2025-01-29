@@ -515,6 +515,7 @@ export function PipelineEditor({
         onSchemaCreated={refreshSchemas}
         open={createSchemaOpen}
         onOpenChange={setCreateSchemaOpen}
+        mappings={mappings}
       />
 
       <div className="relative">

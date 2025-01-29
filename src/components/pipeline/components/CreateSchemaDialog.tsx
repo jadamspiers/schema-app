@@ -1,21 +1,25 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import JsonAnalyzer from '@/components/JsonAnalyzer';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Schema, SchemaField } from '@/components/schema/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { TransformationEngine } from '@/lib/transformationEngine';
+import type { FieldMapping } from '@/components/pipeline/types';
+import { Textarea } from "@/components/ui/textarea";
+import JsonAnalyzer from '@/components/JsonAnalyzer';
 
 interface CreateSchemaDialogProps {
   pipelineId: string;
   sourceId: string;
-  sourceJson?: Record<string, unknown>;
+  sourceJson: Record<string, unknown>;
   existingSchemas: Schema[];
-  onSchemaCreated: () => Promise<void>;
+  onSchemaCreated: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mappings: FieldMapping[];
 }
 
 export function CreateSchemaDialog({ 
@@ -25,12 +29,29 @@ export function CreateSchemaDialog({
   existingSchemas,
   onSchemaCreated,
   open,
-  onOpenChange
+  onOpenChange,
+  mappings
 }: CreateSchemaDialogProps) {
   const [name, setName] = useState('');
   const [selectedSource, setSelectedSource] = useState<string>('source');
+  const [previewData, setPreviewData] = useState<Record<string, unknown>>(sourceJson);
   const [fields, setFields] = useState<SchemaField[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (selectedSource && selectedSource !== 'source') {
+      const schemaIndex = parseInt(selectedSource.replace('schema', '')) - 1;
+      const engine = new TransformationEngine(
+        existingSchemas.slice(0, schemaIndex + 1),
+        mappings,
+        sourceJson
+      );
+      const { intermediateSteps } = engine.transformWithIntermediates();
+      setPreviewData(intermediateSteps[schemaIndex] || {});
+    } else {
+      setPreviewData(sourceJson);
+    }
+  }, [selectedSource, existingSchemas, sourceJson, mappings]);
 
   const handleCreate = async () => {
     try {
@@ -68,47 +89,43 @@ export function CreateSchemaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Schema</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <Input
+            placeholder="Schema Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Schema Name"
           />
-          
-          {existingSchemas.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              This will be the first schema in the pipeline. It will use the pipeline's source JSON as input.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Select Source Data</label>
-              <Select value={selectedSource} onValueChange={setSelectedSource}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="source">Pipeline Source JSON</SelectItem>
-                  {existingSchemas.map(schema => (
-                    <SelectItem key={schema.id} value={schema.id}>
-                      {schema.name} Output
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
+          <div>
+            <h4 className="mb-2 text-sm font-medium">Select Source Data</h4>
+            <Select value={selectedSource} onValueChange={setSelectedSource}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="source">Pipeline Source JSON</SelectItem>
+                {existingSchemas.map((schema, index) => (
+                  <SelectItem key={schema.id} value={`schema${index + 1}`}>
+                    {schema.name} Output
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Textarea
+            value={JSON.stringify(previewData, null, 2)}
+            readOnly
+            className="min-h-[200px] font-mono"
+            placeholder="JSON preview will appear here..."
+          />
           <JsonAnalyzer
+            sourceJson={previewData}
             onFieldsChange={setFields}
-            sourceJson={sourceJson}
-            selectedSourceId={selectedSource}
-            existingSchemas={existingSchemas}
+            hideJsonInput={true}
           />
-          
           <Button onClick={handleCreate} className="w-full">
             Create Schema
           </Button>

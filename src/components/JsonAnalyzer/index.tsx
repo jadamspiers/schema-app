@@ -17,8 +17,7 @@ interface JsonAnalyzerProps {
   isEditMode?: boolean;
   onSave?: (fields: SchemaField[]) => void;
   sourceJson?: Record<string, unknown>;
-  selectedSourceId?: string;
-  existingSchemas?: Schema[];
+  hideJsonInput?: boolean;
 }
 
 const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({
@@ -26,9 +25,13 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({
   onFieldsChange,
   isEditMode,
   onSave,
+  sourceJson,
+  hideJsonInput = false
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const { rawJson, parsedJson, handleJsonInput } = useJsonParser(initialSchema?.example_json);
+  const { rawJson, parsedJson, handleJsonInput } = useJsonParser(
+    hideJsonInput ? JSON.stringify(sourceJson) : initialSchema?.example_json
+  );
   const {
     fields,
     isModified,
@@ -75,16 +78,18 @@ const JsonAnalyzer: React.FC<JsonAnalyzerProps> = ({
       <div className="grid grid-cols-3 gap-4">
         {/* Left Column - JSON Viewer */}
         <div className="space-y-4">
-          <Card>
-            <CardContent className="pt-6">
-              <Textarea
-                placeholder="Paste your JSON here..."
-                value={rawJson}
-                onChange={handleJsonInput}
-                className="min-h-[200px] font-mono"
-              />
-            </CardContent>
-          </Card>
+          {!hideJsonInput && (
+            <Card>
+              <CardContent className="pt-6">
+                <Textarea
+                  placeholder="Paste your JSON here..."
+                  value={rawJson}
+                  onChange={handleJsonInput}
+                  className="min-h-[200px] font-mono"
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {parsedJson && (
             <Card>

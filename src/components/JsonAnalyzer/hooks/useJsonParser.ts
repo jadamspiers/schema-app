@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import type { ParsedJson } from '../components/types';
 
 const parseJson = (input: string): ParsedJson => {
@@ -26,7 +26,7 @@ export const useJsonParser = (initialJson?: string) => {
     return null;
   });
 
-  const handleJsonInput = (e: ChangeEvent<HTMLTextAreaElement>) => {
+  const handleJsonInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const input = e.target.value;
     setRawJson(input);
     if (input.trim()) {
@@ -35,6 +35,13 @@ export const useJsonParser = (initialJson?: string) => {
       setParsedJson(null);
     }
   };
+
+  useEffect(() => {
+    if (initialJson) {
+      setRawJson(initialJson);
+      setParsedJson(parseJson(initialJson));
+    }
+  }, [initialJson]);
 
   return {
     rawJson,
