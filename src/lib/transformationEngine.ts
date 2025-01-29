@@ -1,6 +1,7 @@
 import { FieldMapping } from "@/components/pipeline/types";
 import { Schema } from "@/components/schema/types";
 import { FieldTransformation } from '@/components/pipeline/types';
+import get from 'lodash/get';
 
 export class TransformationEngine {
   constructor(
@@ -103,22 +104,32 @@ export class TransformationEngine {
     finalResult: Record<string, unknown>[],
     intermediateSteps: Record<string, unknown>[] 
   } {
-    const results = this.transform();
+    const intermediateSteps: Record<string, unknown>[] = [];
+    const finalResult = this.transform();
     
-    return {
-      finalResult: results,
-      intermediateSteps: results
-    };
+    for (const schema of this.schemas) {
+      const result: Record<string, unknown> = {};
+      
+      for (const field of schema.fields) {
+        // For the first schema, extract values directly from source JSON
+        if (schema.id === this.schemas[0].id) {
+          result[field.key] = get(this.sourceData, field.path.replace('root.', ''));
+        }
+        // For subsequent schemas, use mappings (to be implemented)
+      }
+
+      intermediateSteps.push(result);
+    }
+
+    return { finalResult, intermediateSteps };
   }
 
   private getValueFromPath(obj: Record<string, unknown>, path: string): unknown {
-    try {
-      return path.split('.').reduce((curr, key) => 
-        curr && typeof curr === 'object' ? (curr as Record<string, unknown>)[key] : undefined, 
-        obj as unknown
-      );
-    } catch {
+    return path.split('.').reduce((acc: unknown, part: string) => {
+      if (acc && typeof acc === 'object') {
+        return (acc as Record<string, unknown>)[part];
+      }
       return undefined;
-    }
+    }, obj);
   }
 } 
