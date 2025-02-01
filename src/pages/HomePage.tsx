@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteSourceDialog } from '@/components/source/components/DeleteSourceDialog';
 import type { Source } from '@/components/source/types';
 import { FieldTransformation } from '@/components/pipeline/types';
+import { DeletePipelineDialog } from '@/components/pipeline/components/DeletePipelineDialog';
 
 export interface Pipeline {
   id: string;
@@ -38,6 +39,7 @@ const HomePage = () => {
   const { refreshSchemas } = useSchema();
   const navigate = useNavigate();
   const [sourceToDelete, setSourceToDelete] = useState<Source | null>(null);
+  const [pipelineToDelete, setPipelineToDelete] = useState<Pipeline | null>(null);
   
   useEffect(() => {
     const pipelineIds = sources.flatMap(s => s.pipelines?.map(p => p.id) || [ ]);
@@ -111,20 +113,33 @@ const HomePage = () => {
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-sm font-medium">Pipelines</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Pipelines</h3>
+                  <CreatePipelineDialog sourceId={source.id} existingSchemas={[]} />
+                </div>
                 {source.pipelines && source.pipelines.length > 0 ? (
                   <div className="space-y-2">
                     {source.pipelines.map(pipeline => (
                       <div
                         key={pipeline.id}
-                        onClick={() => navigate(`/source/${source.id}/pipeline/${pipeline.id}`)}
-                        className="flex items-center justify-between p-2 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted"
+                        className="flex items-center justify-between p-2 rounded-md border bg-muted/50 hover:bg-muted group"
                       >
-                        <div className="flex items-center gap-2">
+                        <div
+                          className="flex items-center gap-2 flex-1 cursor-pointer"
+                          onClick={() => navigate(`/source/${source.id}/pipeline/${pipeline.id}`)}
+                        >
                           <GitBranch className="h-4 w-4" />
                           <span className="text-sm font-medium">{pipeline.name}</span>
+                          <span className="text-sm text-muted-foreground">v{pipeline.version}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">v{pipeline.version}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPipelineToDelete(pipeline)}
+                          className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -151,6 +166,14 @@ const HomePage = () => {
           sourceName={sourceToDelete.name}
           open={!!sourceToDelete}
           onOpenChange={(open) => !open && setSourceToDelete(null)}
+        />
+      )}
+
+      {pipelineToDelete && (
+        <DeletePipelineDialog
+          pipeline={pipelineToDelete}
+          open={!!pipelineToDelete}
+          onOpenChange={(open) => !open && setPipelineToDelete(null)}
         />
       )}
     </div>

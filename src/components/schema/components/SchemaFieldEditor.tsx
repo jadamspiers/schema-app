@@ -8,13 +8,13 @@ import { useJsonParser } from '@/components/JsonAnalyzer/hooks/useJsonParser';
 
 interface SchemaFieldEditorProps {
   schema: Schema;
-  sourceJson?: Record<string, unknown>;
+  inputJson: Record<string, unknown>;
   onSave: (fields: SchemaField[]) => void;
   onCancel: () => void;
 }
 
-export function SchemaFieldEditor({ schema, sourceJson, onSave, onCancel }: SchemaFieldEditorProps) {
-  const { parsedJson } = useJsonParser(JSON.stringify(sourceJson || {}));
+export function SchemaFieldEditor({ schema, inputJson, onSave, onCancel }: SchemaFieldEditorProps) {
+  const { parsedJson } = useJsonParser(JSON.stringify(inputJson || {}));
   const {
     fields,
     isModified,
@@ -28,7 +28,7 @@ export function SchemaFieldEditor({ schema, sourceJson, onSave, onCancel }: Sche
     <div className="grid grid-cols-2 gap-4">
       {/* Left side - JSON viewer */}
       <div className="space-y-4">
-        <h3 className="font-semibold">Source JSON</h3>
+        <h3 className="font-semibold">Input JSON</h3>
         <JsonNode 
           name="root" 
           value={parsedJson?.data || {}} 

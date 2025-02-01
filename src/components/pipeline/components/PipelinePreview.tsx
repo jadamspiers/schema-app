@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
-import { TransformationEngine } from '@/lib/transformationEngine';
 import { Schema } from '@/components/schema/types';
 import { FieldMapping } from '../types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,11 +16,56 @@ export function PipelinePreview({ schemas, mappings, sourceData }: PipelinePrevi
   const [intermediateResults, setIntermediateResults] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    handlePreview();
+  }, [schemas, mappings, sourceData]);
+
+  const generateOutputFromSchema = (schema: Schema, inputJson: Record<string, unknown>) => {
+    const output: Record<string, unknown> = {}; 
+    
+    for (const field of schema.fields) {
+      try {
+        const pathParts = field.path.split('.');
+        let currentValue: unknown = inputJson;
+        
+        for (const part of pathParts) {
+          if (!currentValue || typeof currentValue !== 'object') {
+            currentValue = undefined;
+            break;
+          }
+
+          if (Array.isArray(currentValue)) {
+            const index = parseInt(part, 10);
+            currentValue = isNaN(index) ? undefined : currentValue[index];
+          } else {
+            const objValue = currentValue as Record<string, unknown>;
+            currentValue = objValue[part];
+          }
+        }
+        
+        if (currentValue !== undefined) {
+          output[field.key] = currentValue;
+        }
+      } catch (err) {
+        console.error(`Error extracting value for field ${field.key}:`, err);
+      }
+    }
+    
+    return output;
+  };
+
   const handlePreview = () => {
     try {
-      const engine = new TransformationEngine(schemas, mappings, sourceData);
-      const { intermediateSteps } = engine.transformWithIntermediates();
-      setIntermediateResults(intermediateSteps);
+      const results: Record<string, unknown>[] = [];
+      let currentInput = sourceData;
+
+      for (const schema of schemas) {
+        const output = generateOutputFromSchema(schema, currentInput);
+        results.push(output);
+        currentInput = output; // Use this schema's output as input for the next schema
+      }
+
+      setIntermediateResults(results);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to transform data');

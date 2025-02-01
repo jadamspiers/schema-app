@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Schema, SchemaField } from '@/components/schema/types';
 import { useState, useEffect } from 'react';
-import { TransformationEngine } from '@/lib/transformationEngine';
+import { TransformationEngine } from '@/lib/TransformationEngine';
 import type { FieldMapping } from '@/components/pipeline/types';
 import { Textarea } from "@/components/ui/textarea";
 import JsonAnalyzer from '@/components/JsonAnalyzer';
@@ -62,7 +62,8 @@ export function CreateSchemaDialog({
           pipeline_id: pipelineId,
           source_id: sourceId,
           fields,
-          version: '1.0.0'
+          version: '1.0.0',
+          input_json: previewData
         })
         .select()
         .single();

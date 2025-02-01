@@ -14,6 +14,7 @@ import { CreateSchemaDialog } from './CreateSchemaDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DeleteSchemaFromPipelineDialog } from './DeleteSchemaFromPipelineDialog';
 import { SchemaFieldEditor } from '@/components/schema/components/SchemaFieldEditor';
+import { TransformationEngine } from '@/lib/TransformationEngine';
 
 interface PipelineEditorProps {
   schemas: Schema[];
@@ -66,18 +67,20 @@ export function PipelineEditor({
         return;
       }
       
-      setMappings(data.map(m => ({
+      const formattedMappings = data.map(m => ({
         sourceSchemaId: m.source_schema_id,
         sourceFieldId: m.source_field_id,
         targetSchemaId: m.target_schema_id,
         targetFieldId: m.target_field_id,
-        sourceType: m.source_type || 'schema',
+        sourceType: m.source_type || (m.source_schema_id ? 'schema' : 'json'),
         sourceReference: m.source_reference || m.source_field_id,
-        transformation: m.transformation_type ? {
-          type: m.transformation_type,
-          options: m.transformation_options
-        } : undefined
-      })));
+        transformation: {
+          type: m.transformation_type || 'none',
+          options: m.transformation_options || {}
+        }
+      }));
+
+      setMappings(formattedMappings);
     };
 
     loadMappings();
@@ -493,6 +496,31 @@ export function PipelineEditor({
     }
   };
 
+  const getSchemaInputJson = (schemaId: string): Record<string, unknown> => {
+    const schema = localSchemas.find(s => s.id === schemaId);
+    if (!schema) return {};
+    
+    // If schema has input_json defined, use that
+    if (schema.input_json && Object.keys(schema.input_json).length > 0) {
+      return schema.input_json;
+    }
+    
+    // Otherwise, calculate it based on pipeline position
+    if (schema.id === localSchemas[0]?.id) {
+      return sourceData;
+    }
+    
+    const prevSchemaIndex = localSchemas.findIndex(s => s.id === schemaId) - 1;
+    if (prevSchemaIndex >= 0) {
+      const prevSchema = localSchemas[prevSchemaIndex];
+      const engine = new TransformationEngine([prevSchema], mappings, sourceData);
+      const { intermediateSteps } = engine.transformWithIntermediates();
+      return intermediateSteps[0] || {};
+    }
+    
+    return {};
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -520,7 +548,7 @@ export function PipelineEditor({
 
       <div className="relative">
         <div className="flex gap-6 overflow-x-auto pb-6">
-          {localSchemas.map((schema, index) => (
+          {localSchemas.map((schema) => (
             <Card
               key={schema.id}
               draggable
@@ -545,15 +573,13 @@ export function PipelineEditor({
                     <h3 className="text-lg font-semibold">{schema.name}</h3>
                     <span className="text-sm text-muted-foreground">v{schema.version}</span>
                   </div>
-                  {index === 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingSchemaId(schema.id)}
-                    >
-                      Edit Fields
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingSchemaId(schema.id)}
+                  >
+                    Edit Fields
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -594,7 +620,7 @@ export function PipelineEditor({
               </DialogHeader>
               <SchemaFieldEditor
                 schema={localSchemas.find(s => s.id === editingSchemaId)!}
-                sourceJson={sourceData}
+                inputJson={getSchemaInputJson(editingSchemaId)}
                 onSave={(fields) => {
                   handleFieldUpdate(editingSchemaId, fields);
                   setEditingSchemaId(null);

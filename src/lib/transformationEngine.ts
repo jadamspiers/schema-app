@@ -1,7 +1,6 @@
 import { FieldMapping } from "@/components/pipeline/types";
 import { Schema } from "@/components/schema/types";
 import { FieldTransformation } from '@/components/pipeline/types';
-import get from 'lodash/get';
 
 export class TransformationEngine {
   constructor(
@@ -105,31 +104,60 @@ export class TransformationEngine {
     intermediateSteps: Record<string, unknown>[] 
   } {
     const intermediateSteps: Record<string, unknown>[] = [];
-    const finalResult = this.transform();
     
-    for (const schema of this.schemas) {
+    for (let i = 0; i < this.schemas.length; i++) {
+      const schema = this.schemas[i];
       const result: Record<string, unknown> = {};
+      const schemaMappings = this.mappings.filter(m => m.targetSchemaId === schema.id);
       
-      for (const field of schema.fields) {
-        // For the first schema, extract values directly from source JSON
-        if (schema.id === this.schemas[0].id) {
-          result[field.key] = get(this.sourceData, field.path.replace('root.', ''));
+      for (const mapping of schemaMappings) {
+        try {
+          let value: unknown;
+          
+          if (mapping.sourceType === 'json') {
+            value = this.getValueFromPath(this.sourceData, mapping.sourceReference);
+          } else {
+            const sourceSchemaIndex = this.schemas.findIndex(s => s.id === mapping.sourceSchemaId);
+            if (sourceSchemaIndex >= 0 && intermediateSteps[sourceSchemaIndex]) {
+              const sourceField = this.schemas[sourceSchemaIndex].fields.find(f => f.id === mapping.sourceFieldId);
+              if (sourceField) {
+                value = intermediateSteps[sourceSchemaIndex][sourceField.key];
+              }
+            }
+          }
+          
+          const targetField = schema.fields.find(f => f.id === mapping.targetFieldId);
+          if (targetField) {
+            result[targetField.key] = value;
+          }
+        } catch (err) {
+          console.error('Error processing mapping:', err);
         }
-        // For subsequent schemas, use mappings (to be implemented)
       }
-
+      
       intermediateSteps.push(result);
     }
-
-    return { finalResult, intermediateSteps };
+    
+    return { finalResult: intermediateSteps, intermediateSteps };
   }
 
   private getValueFromPath(obj: Record<string, unknown>, path: string): unknown {
-    return path.split('.').reduce((acc: unknown, part: string) => {
-      if (acc && typeof acc === 'object') {
-        return (acc as Record<string, unknown>)[part];
+    let current: unknown = obj;
+    const parts = path.split('.');
+    
+    for (const part of parts) {
+      if (!current || typeof current !== 'object') {
+        return undefined;
       }
-      return undefined;
-    }, obj);
+
+      if (Array.isArray(current)) {
+        const index = parseInt(part, 10);
+        current = isNaN(index) ? undefined : current[index];
+      } else {
+        current = (current as Record<string, unknown>)[part];
+      }
+    }
+    
+    return current;
   }
 } 

@@ -9,6 +9,7 @@ export interface Schema {
     version: string;
     created_at: string;
     updated_at: string;
+    input_json?: Record<string, unknown>;
   }
   
   export interface CreateSchemaInput {
